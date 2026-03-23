@@ -28,25 +28,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid username" }, { status: 400 });
     }
 
-    // Use Googlebot UA — Instagram serves proper og: meta tags to crawlers
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const res = await fetch(`https://www.instagram.com/${encodeURIComponent(handle)}/`, {
-      headers: {
-        "User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)",
-        Accept: "text/html",
-      },
-      redirect: "follow",
-      signal: controller.signal,
+    // Use Cloudflare Worker proxy (uses Googlebot UA for Instagram)
+    const PROXY_URL = "https://trendy-proxy.ibra-315.workers.dev";
+    const proxyRes = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: `https://www.instagram.com/${encodeURIComponent(handle)}/` }),
     });
-    clearTimeout(timeout);
 
-    if (!res.ok) {
+    if (!proxyRes.ok) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const html = await res.text();
+    const html = await proxyRes.text();
 
     let displayName = "";
 
