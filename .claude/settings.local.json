@@ -45,7 +45,10 @@
       "Bash(npx wrangler:*)",
       "Bash(curl -s -X POST \"https://trendy-proxy.ibra-315.workers.dev\" -H \"Content-Type: application/json\" -d '{\"\"\"\"url\"\"\"\":\"\"\"\"https://www.trendyol.com/mystobag/fularli-degiskenlik-gostermektedir-fermuarli-ve-citcit-kapamali-shopper-el-ve-omuz-cantasi-p-1015243251\"\"\"\"}')",
       "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -X POST \"https://trendy-proxy.ibra-315.workers.dev\" -H \"Content-Type: application/json\" -d '{\"\"url\"\":\"\"https://www.trendyol.com/mystobag/fularli-degiskenlik-gostermektedir-fermuarli-ve-citcit-kapamali-shopper-el-ve-omuz-cantasi-p-1015243251\"\"}')",
-      "Bash(curl -v -X POST \"https://trendy-proxy.ibra-315.workers.dev\" -H \"Content-Type: application/json\" -d '{\"\"\"\"url\"\"\"\":\"\"\"\"https://example.com\"\"\"\"}')"
+      "Bash(curl -v -X POST \"https://trendy-proxy.ibra-315.workers.dev\" -H \"Content-Type: application/json\" -d '{\"\"\"\"url\"\"\"\":\"\"\"\"https://example.com\"\"\"\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -b /tmp/vc.txt -X POST \"https://trendy-store-khaki.vercel.app/api/instagram\" -H \"Content-Type: application/json\" -d '{\"\"username\"\":\"\"ml.5__\"\"}')",
+      "Bash(curl -s -X POST \"https://trendy-proxy.ibra-315.workers.dev\" -H \"Content-Type: application/json\" -d '{\"\"\"\"url\"\"\"\":\"\"\"\"https://www.instagram.com/ml.5__/\"\"\"\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -X POST \"https://trendy-proxy.ibra-315.workers.dev\" -H \"Content-Type: application/json\" -d '{\"\"\"\"url\"\"\"\":\"\"\"\"https://www.instagram.com/ml.5__/\"\"\"\"}')"
     ]
   }
 }

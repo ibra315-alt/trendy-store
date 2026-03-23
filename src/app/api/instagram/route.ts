@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!proxyRes.ok) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      if (proxyRes.status === 429) {
+        return NextResponse.json({ error: "انستغرام يحظر الطلبات - أدخل الاسم يدوياً" }, { status: 429 });
+      }
+      return NextResponse.json({ error: "لم يتم العثور على الحساب" }, { status: 404 });
     }
 
     const html = await proxyRes.text();
