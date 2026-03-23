@@ -80,8 +80,8 @@
 .dark {
   --color-ground: #0B0F19;
   --color-card: #161B2E;
-  --color-border: #1E2642;
-  --color-border-light: #1A2038;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-light: rgba(255, 255, 255, 0.03);
 
   --color-navy: #89B4F8;
   --color-navy-light: #A8C7FA;
@@ -100,13 +100,13 @@
   --color-ink-muted: #7B84A0;
   --color-ink-inverse: #0B0F19;
 
-  --shadow-xs: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-xl: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 48px rgba(0, 0, 0, 0.5);
-  --shadow-dock: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 -4px 24px rgba(0, 0, 0, 0.3);
-  --shadow-command: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 64px rgba(0, 0, 0, 0.5);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --shadow-dock: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-command: 0 24px 64px rgba(0, 0, 0, 0.5);
 
   color-scheme: dark;
 }
@@ -115,6 +115,39 @@
 .dark img[alt*="موج"],
 .dark img[alt*="Mawj"] {
   filter: brightness(0) invert(1);
+}
+
+/* ============================================
+   Backwards-Compatible Aliases
+   Pages use var(--surface), var(--foreground) etc.
+   ============================================ */
+
+:root {
+  --background: var(--color-ground);
+  --foreground: var(--color-ink);
+  --surface: var(--color-card);
+  --surface-foreground: var(--color-ink);
+  --surface-secondary: var(--color-border-light);
+  --surface-tertiary: var(--color-border);
+  --accent: var(--color-navy);
+  --accent-foreground: var(--color-ink-inverse);
+  --border: var(--color-border);
+  --separator: var(--color-border-light);
+  --muted: var(--color-ink-muted);
+  --danger: var(--color-danger);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --overlay: var(--color-card);
+  --overlay-shadow: var(--shadow-xl);
+  --surface-shadow: var(--shadow-sm);
+  --field-background: var(--color-card);
+  --field-foreground: var(--color-ink);
+  --field-placeholder: var(--color-ink-muted);
+}
+
+.dark {
+  --surface-secondary: var(--color-border-light);
+  --surface-tertiary: var(--color-border);
 }
 
 /* ============================================
@@ -610,6 +643,123 @@ a[class*="bg-navy"]:active {
 
 .dark .pulse-ring--alert {
   border-color: rgba(137, 180, 248, 0.6);
+}
+
+/* ============================================
+   Aura Luminescent Background — Chrome Edition
+   ============================================ */
+
+.aura-bg {
+  transition: opacity 500ms ease;
+}
+
+.aura-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform;
+}
+
+/* Light mode: subtle wash (3-5%) */
+.aura-blob-1 {
+  width: 650px; height: 650px;
+  background: #4285F4; opacity: 0.04;
+  top: -10%; right: -5%;
+  animation: aura-drift-1 25s ease-in-out infinite alternate;
+}
+.aura-blob-2 {
+  width: 500px; height: 500px;
+  background: #3B5BDB; opacity: 0.03;
+  top: 40%; left: -8%;
+  animation: aura-drift-2 30s ease-in-out infinite alternate;
+}
+.aura-blob-3 {
+  width: 450px; height: 450px;
+  background: #7C3AED; opacity: 0.025;
+  bottom: -5%; right: 30%;
+  animation: aura-drift-3 28s ease-in-out infinite alternate;
+}
+.aura-blob-4 {
+  width: 400px; height: 400px;
+  background: #34A853; opacity: 0.025;
+  bottom: 10%; left: 5%;
+  animation: aura-drift-4 32s ease-in-out infinite alternate;
+}
+.aura-blob-5 {
+  width: 350px; height: 350px;
+  background: #4285F4; opacity: 0.03;
+  top: 15%; left: 20%;
+  animation: aura-drift-5 27s ease-in-out infinite alternate;
+}
+
+/* Dark mode: vivid glow (10-15%) — creates the blue tint */
+.dark .aura-blob-1 {
+  opacity: 0.14; background: #4285F4;
+  width: 750px; height: 750px; filter: blur(150px);
+}
+.dark .aura-blob-2 {
+  opacity: 0.10; background: #3B5BDB;
+  width: 600px; height: 600px; filter: blur(140px);
+}
+.dark .aura-blob-3 {
+  opacity: 0.08; background: #7C3AED;
+  width: 550px; height: 550px; filter: blur(130px);
+}
+.dark .aura-blob-4 {
+  opacity: 0.10; background: #34A853;
+  width: 500px; height: 500px; filter: blur(140px);
+}
+.dark .aura-blob-5 {
+  opacity: 0.12; background: #4285F4;
+  width: 450px; height: 450px; filter: blur(130px);
+}
+
+/* Ultra-slow drift keyframes */
+@keyframes aura-drift-1 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(-70px, 50px) scale(1.12) rotate(15deg); }
+}
+@keyframes aura-drift-2 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(60px, -40px) scale(1.08) rotate(-10deg); }
+}
+@keyframes aura-drift-3 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(-50px, -60px) scale(1.1) rotate(12deg); }
+}
+@keyframes aura-drift-4 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(40px, -30px) scale(1.06) rotate(-8deg); }
+}
+@keyframes aura-drift-5 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(-30px, 40px) scale(1.08) rotate(10deg); }
+}
+
+/* Alias: old pages use stagger-children */
+.stagger-children > * {
+  animation: chrome-fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+
+/* Alias: old animation classes */
+.animate-fade-in-up {
+  animation: chrome-fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.animate-fade-in-scale {
+  animation: chrome-fade-in-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* card-glow alias for old pages */
+.card-glow {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* ============================================
