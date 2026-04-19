@@ -294,6 +294,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Slug-based color fallback (e.g. shulebags.com URLs contain color in slug)
+    if (!result.colors?.length) {
+      const slugColorMap: Record<string, string> = {
+        kahve: "بني", siyah: "أسود", beyaz: "أبيض", kirmizi: "أحمر", mavi: "أزرق",
+        yesil: "أخضر", sari: "أصفر", pembe: "وردي", mor: "بنفسجي", gri: "رمادي",
+        turuncu: "برتقالي", lacivert: "كحلي", krem: "كريمي", bej: "بيج",
+        altin: "ذهبي", gumus: "فضي", bordo: "بوردو", haki: "خاكي",
+      };
+      const slug = url.toLowerCase();
+      for (const [tr, ar] of Object.entries(slugColorMap)) {
+        if (slug.includes(tr)) { result.colors = [{ name: ar }]; break; }
+      }
+    }
+
     // Generic site images fallback
     if (!result.allImages?.length) {
       for (const cdn of ["img-koton.mncdn.com", "img-lcwaikiki.mncdn.com", "dfcdn.defacto.com.tr", "img-boyner.mncdn.com"]) {
