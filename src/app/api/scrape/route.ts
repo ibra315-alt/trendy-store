@@ -285,6 +285,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Embedded script JSON scan for size/beden/numara keys
+    if (!result.sizes?.length) {
+      for (const [, content] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) {
+        // Array of sizes: "beden": ["S","M","L"] or "sizes": [...]
+        const arrMatch = content.match(/"(?:beden|numara|sizes?|availableSizes?|sizeValues?|bedenler)"\s*:\s*(\[[^\]]{1,500}\])/i);
+        if (arrMatch) {
+          try {
+            const arr: unknown[] = JSON.parse(arrMatch[1]);
+            const sizes = arr
+              .map((v) => (typeof v === "string" ? v : typeof v === "object" && v !== null ? (v as Record<string, string>).name || (v as Record<string, string>).value || "" : String(v)))
+              .map((s) => s.trim())
+              .filter(Boolean);
+            if (sizes.length) { result.sizes = sizes; break; }
+          } catch { /* skip */ }
+        }
+        // Single value: "beden": "M"
+        const singleMatch = content.match(/"(?:beden|numara|sizeName)"\s*:\s*"([^"]{1,30})"/i);
+        if (singleMatch?.[1]?.trim()) { result.sizes = [singleMatch[1].trim()]; break; }
+      }
+    }
+
     // Embedded script JSON scan for color/renk keys
     if (!result.colors?.length) {
       for (const [, content] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) {
