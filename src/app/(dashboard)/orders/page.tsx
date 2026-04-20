@@ -851,17 +851,17 @@ export default function OrdersPage() {
         </div>
 
         {/* Two-column layout: image left + fields right */}
-        <div className="grid grid-cols-2 gap-3 items-start">
+        <div className="flex gap-3 items-stretch">
 
-          {/* Left: main image + thumbnails */}
-          <div className="flex flex-col gap-1.5">
+          {/* Left: main image + thumbnails — stretches to match fields height */}
+          <div className="flex flex-col gap-1.5 w-[42%] shrink-0">
             {item.fetchedImages.length > 0 ? (
               <>
-                <div className="relative group">
+                <div className="relative group flex-1 min-h-0">
                   <img
                     src={item.fetchedImages[item.selectedImageIdx ?? 0]}
                     alt="صورة المنتج"
-                    className="w-full aspect-square rounded-lg object-cover border border-border"
+                    className="w-full h-full rounded-lg object-cover border border-border"
                   />
                   <button
                     type="button"
@@ -872,7 +872,7 @@ export default function OrdersPage() {
                   </button>
                 </div>
                 {item.fetchedImages.length > 1 && (
-                  <div className="flex gap-1 overflow-x-auto">
+                  <div className="flex gap-1 overflow-x-auto shrink-0">
                     {item.fetchedImages.map((img, idx) => (
                       <button
                         key={idx}
@@ -891,14 +891,14 @@ export default function OrdersPage() {
                 )}
               </>
             ) : (
-              <div className="w-full aspect-square rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
+              <div className="flex-1 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
                 <ImageIcon className="h-8 w-8 opacity-25" />
               </div>
             )}
           </div>
 
           {/* Right: fields */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 flex-1">
             {/* رابط */}
             <div className="flex items-center gap-2">
               <Label className="text-xs shrink-0 w-14 text-end">رابط</Label>
@@ -941,31 +941,27 @@ export default function OrdersPage() {
             </div>
 
             {/* المقاس */}
-            <div className="flex items-start gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end pt-2">المقاس</Label>
-              <div className="flex-1 space-y-1">
-                {item.availableSizes.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">
-                    {item.availableSizes.map((s, si) => (
-                      <button
-                        key={si}
-                        type="button"
-                        onClick={() => updateProductItem(item.id, { size: s })}
-                        className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${
-                          item.size === s
-                            ? "bg-accent text-accent-foreground"
-                            : "border border-border hover:border-accent text-foreground"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs shrink-0 w-14 text-end">المقاس</Label>
+              <div className="flex-1 flex items-center gap-1 flex-wrap">
+                {item.availableSizes.map((s, si) => (
+                  <button
+                    key={si}
+                    type="button"
+                    onClick={() => updateProductItem(item.id, { size: s })}
+                    className={`h-8 px-2 rounded text-xs font-medium transition-all shrink-0 ${
+                      item.size === s
+                        ? "bg-accent text-accent-foreground"
+                        : "border border-border hover:border-accent text-foreground"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
                 <Input
                   value={item.size}
                   onChange={(e) => updateProductItem(item.id, { size: e.target.value })}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs flex-1 min-w-[3rem]"
                 />
               </div>
             </div>
