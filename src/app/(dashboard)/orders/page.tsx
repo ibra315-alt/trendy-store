@@ -1182,13 +1182,13 @@ export default function OrdersPage() {
                               </Badge>
                             </button>
                             {statusDropId === order.id && (
-                              <div className="absolute z-50 top-full mt-1 start-0 bg-background border border-border rounded-lg shadow-xl overflow-hidden min-w-[9rem]">
+                              <div className="absolute z-50 top-full mt-1 start-0 border border-border rounded-lg shadow-xl overflow-hidden min-w-[9rem]" style={{ backgroundColor: "white" }}>
                                 {STATUS_OPTIONS.map((s) => (
                                   <button
                                     key={s.value}
                                     type="button"
                                     onClick={() => updateOrderStatus(order.id, order.status, s.value)}
-                                    className={`w-full text-start px-3 py-1.5 text-sm hover:bg-accent transition-colors ${order.status === s.value ? "font-semibold" : ""}`}
+                                    className={`w-full text-start px-3 py-1.5 text-sm transition-colors ${order.status === s.value ? "font-semibold bg-gray-100" : "hover:bg-gray-100"}`}
                                   >
                                     {s.label}
                                   </button>
