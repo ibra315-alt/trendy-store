@@ -14,6 +14,7 @@ import {
   ImageIcon,
   X,
   Package,
+  ExternalLink,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -1079,6 +1080,8 @@ export default function OrdersPage() {
                     <TableHead className="whitespace-nowrap text-start">المتبقي</TableHead>
                     <TableHead className="whitespace-nowrap text-start">الحالة</TableHead>
                     <TableHead className="whitespace-nowrap text-start">الدفع</TableHead>
+                    <TableHead className="whitespace-nowrap text-start">رابط</TableHead>
+                    <TableHead className="whitespace-nowrap text-start">التاريخ</TableHead>
                     <TableHead className="whitespace-nowrap text-end">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1146,6 +1149,24 @@ export default function OrdersPage() {
                           >
                             {prettyStatus(order.paymentStatus)}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {order.productLink ? (
+                            <a
+                              href={order.productLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-border hover:bg-accent transition-colors"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              فتح
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                          {format(new Date(order.createdAt), "dd/MM/yyyy")}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
