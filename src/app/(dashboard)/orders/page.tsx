@@ -1182,17 +1182,32 @@ export default function OrdersPage() {
                               </Badge>
                             </button>
                             {statusDropId === order.id && (
-                              <div className="absolute z-50 top-full mt-1 start-0 border border-border rounded-lg shadow-xl overflow-hidden min-w-[9rem]" style={{ backgroundColor: "white" }}>
-                                {STATUS_OPTIONS.map((s) => (
-                                  <button
-                                    key={s.value}
-                                    type="button"
-                                    onClick={() => updateOrderStatus(order.id, order.status, s.value)}
-                                    className={`w-full text-start px-3 py-1.5 text-sm transition-colors ${order.status === s.value ? "font-semibold bg-gray-100" : "hover:bg-gray-100"}`}
-                                  >
-                                    {s.label}
-                                  </button>
-                                ))}
+                              <div className="absolute z-50 top-full mt-1 start-0 rounded-lg shadow-xl overflow-hidden min-w-[9rem]" style={{ backgroundColor: "#1e1e2e", border: "1px solid #333" }}>
+                                {STATUS_OPTIONS.map((s) => {
+                                  const colors: Record<string, string> = {
+                                    new:         "#3b82f6",
+                                    in_progress: "#eab308",
+                                    bought:      "#a855f7",
+                                    shipped:     "#f97316",
+                                    delivered:   "#22c55e",
+                                  };
+                                  const active = order.status === s.value;
+                                  return (
+                                    <button
+                                      key={s.value}
+                                      type="button"
+                                      onClick={() => updateOrderStatus(order.id, order.status, s.value)}
+                                      style={{
+                                        backgroundColor: active ? colors[s.value] + "33" : "transparent",
+                                        color: colors[s.value] ?? "#e5e7eb",
+                                        borderRight: active ? `3px solid ${colors[s.value]}` : "3px solid transparent",
+                                      }}
+                                      className="w-full text-start px-3 py-2 text-sm font-medium transition-colors hover:brightness-125"
+                                    >
+                                      {s.label}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
