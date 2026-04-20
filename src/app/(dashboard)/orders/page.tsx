@@ -1109,10 +1109,7 @@ export default function OrdersPage() {
                           {order.customer?.name || "-"}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          <span className="text-muted-foreground text-xs">
-                            {PRODUCT_TYPE_LABELS[order.productType] || order.productType}
-                          </span>{" "}
-                          {order.productName || "-"}
+                          {PRODUCT_TYPE_LABELS[order.productType] || order.productType}
                           {itemCount > 1 && (
                             <Badge variant="secondary" className="ms-2 text-xs">
                               + {itemCount - 1} منتجات
