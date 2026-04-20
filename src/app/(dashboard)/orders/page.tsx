@@ -112,6 +112,7 @@ interface ProductItem {
   purchaseCost: string;
   sellingPrice: string;
   images: string;
+  selectedImageIdx: number;
   availableColors: { name: string; image?: string }[];
   availableSizes: string[];
   fetchedImages: string[];
@@ -230,6 +231,7 @@ function createEmptyItem(): ProductItem {
     purchaseCost: "",
     sellingPrice: "",
     images: "",
+    selectedImageIdx: 0,
     availableColors: [],
     availableSizes: [],
     fetchedImages: [],
@@ -603,7 +605,8 @@ export default function OrdersPage() {
             size: firstSize || item.size,
             purchaseCost: finalPurchaseCost || item.purchaseCost,
             sellingPrice: sellingPrice || item.sellingPrice,
-            images: mainImage ? JSON.stringify(fetchedImages) : item.images,
+            images: mainImage ? JSON.stringify([mainImage]) : item.images,
+            selectedImageIdx: 0,
             fetchedImages,
             availableColors: data.colors || [],
             availableSizes: data.sizes || [],
@@ -649,6 +652,7 @@ export default function OrdersPage() {
       purchaseCost: String(order.purchaseCost || ""),
       sellingPrice: "",
       images: order.images || "",
+      selectedImageIdx: 0,
       availableColors: [],
       availableSizes: [],
       fetchedImages: imgs,
@@ -670,6 +674,7 @@ export default function OrdersPage() {
             purchaseCost: String(i.purchaseCost || ""),
             sellingPrice: String(i.sellingPrice || ""),
             images: i.images ? JSON.stringify(i.images) : "",
+            selectedImageIdx: 0,
             availableColors: [],
             availableSizes: [],
             fetchedImages: Array.isArray(i.images) ? (i.images as string[]) : [],
@@ -741,19 +746,24 @@ export default function OrdersPage() {
         status: form.status,
         paymentStatus: form.paymentStatus,
         notes: form.notes,
-        images: firstItem.images || (firstItem.fetchedImages.length > 0 ? JSON.stringify(firstItem.fetchedImages) : null),
+        images: firstItem.fetchedImages.length > 0
+          ? JSON.stringify([firstItem.fetchedImages[firstItem.selectedImageIdx ?? 0]])
+          : firstItem.images || null,
         items: productItems.length > 1
           ? JSON.stringify(
-              productItems.slice(1).map((i) => ({
-                productType: i.productType,
-                productName: i.productName,
-                color: i.color,
-                size: i.size,
-                purchaseCost: i.purchaseCost,
-                sellingPrice: i.sellingPrice,
-                productLink: i.productLink,
-                images: i.fetchedImages,
-              }))
+              productItems.slice(1).map((i) => {
+                const img = i.fetchedImages[i.selectedImageIdx ?? 0] || i.fetchedImages[0];
+                return {
+                  productType: i.productType,
+                  productName: i.productName,
+                  color: i.color,
+                  size: i.size,
+                  purchaseCost: i.purchaseCost,
+                  sellingPrice: i.sellingPrice,
+                  productLink: i.productLink,
+                  images: img ? [img] : [],
+                };
+              })
             )
           : null,
       };
@@ -832,87 +842,89 @@ export default function OrdersPage() {
           )}
         </div>
 
-        {/* Two-column layout: image left (50%) + fields right (50%) */}
-        <div className="grid grid-cols-2 gap-4 items-stretch">
+        {/* Two-column layout: image left + fields right */}
+        <div className="grid grid-cols-2 gap-3 items-start">
 
-          {/* Left: product image — centered horizontally & vertically */}
-          <div className="flex flex-col items-center justify-center gap-2 min-h-[200px]">
+          {/* Left: main image + thumbnails */}
+          <div className="flex flex-col gap-1.5">
             {item.fetchedImages.length > 0 ? (
               <>
-                <div className="relative group w-full flex items-center justify-center">
+                <div className="relative group">
                   <img
-                    src={item.fetchedImages[0]}
+                    src={item.fetchedImages[item.selectedImageIdx ?? 0]}
                     alt="صورة المنتج"
-                    className="w-full aspect-square rounded-xl object-cover border-2 border-border"
+                    className="w-full aspect-square rounded-lg object-cover border border-border"
                   />
                   <button
                     type="button"
-                    title="حذف الصورة"
-                    onClick={() => updateProductItem(item.id, { fetchedImages: [], images: "" })}
-                    className="absolute top-1 left-1 bg-black/50 hover:bg-destructive rounded-full p-0.5 text-white transition-colors"
+                    onClick={() => updateProductItem(item.id, { fetchedImages: [], images: "", selectedImageIdx: 0 })}
+                    className="absolute top-1 left-1 bg-black/60 hover:bg-destructive rounded-full p-0.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
                 {item.fetchedImages.length > 1 && (
-                  <div className="flex gap-1 overflow-x-auto pb-1 w-full justify-center">
-                    {item.fetchedImages.slice(1).map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt={`صورة ${i + 2}`}
-                        className="h-10 w-10 shrink-0 rounded-lg object-cover border border-border opacity-70 hover:opacity-100 transition-opacity"
-                      />
+                  <div className="flex gap-1 overflow-x-auto">
+                    {item.fetchedImages.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => updateProductItem(item.id, { selectedImageIdx: idx })}
+                        className={`shrink-0 h-9 w-9 rounded overflow-hidden border-2 transition-all ${
+                          idx === (item.selectedImageIdx ?? 0)
+                            ? "border-accent"
+                            : "border-transparent opacity-50 hover:opacity-80"
+                        }`}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </button>
                     ))}
                   </div>
                 )}
               </>
             ) : (
-              <div className="w-full aspect-square rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
-                <ImageIcon className="h-8 w-8 opacity-30" />
+              <div className="w-full aspect-square rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
+                <ImageIcon className="h-8 w-8 opacity-25" />
               </div>
             )}
           </div>
 
-          {/* Right: 6 fields — label inline with input */}
-          <div className="flex flex-col justify-center gap-1.5">
-            {/* رابط المنتج */}
+          {/* Right: fields */}
+          <div className="flex flex-col gap-1.5">
+            {/* رابط */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-16 text-end">رابط</Label>
+              <Label className="text-xs shrink-0 w-14 text-end">رابط</Label>
               <div className="relative flex-1">
                 <Input
-                  placeholder="الصق الرابط..."
                   value={item.productLink}
-                  onChange={(e) => updateProductItem(item.id, { productLink: e.target.value, fetchedImages: [], images: "" })}
+                  onChange={(e) => updateProductItem(item.id, { productLink: e.target.value, fetchedImages: [], images: "", selectedImageIdx: 0 })}
                   dir="ltr"
-                  className="h-7 text-xs text-left pe-7"
+                  className="h-8 text-xs text-left pe-7"
                 />
-                {isFetching ? (
-                  <Loader2 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-[var(--muted)]" />
-                ) : item.productLink ? (
-                  <Link2 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-[var(--muted)]" />
-                ) : null}
+                {isFetching
+                  ? <Loader2 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />
+                  : item.productLink && <Link2 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                }
               </div>
             </div>
 
             {/* اللون */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-16 text-end">اللون</Label>
+              <Label className="text-xs shrink-0 w-14 text-end">اللون</Label>
               <Input
                 value={item.color}
                 onChange={(e) => updateProductItem(item.id, { color: e.target.value })}
-                placeholder="اللون"
-                className="h-7 text-xs flex-1"
+                className="h-8 text-xs flex-1"
               />
             </div>
 
-            {/* نوع المنتج */}
+            {/* النوع */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-16 text-end">النوع</Label>
+              <Label className="text-xs shrink-0 w-14 text-end">النوع</Label>
               <Select
                 value={item.productType}
                 onChange={(e) => updateProductItem(item.id, { productType: e.target.value })}
-                className="h-7 text-xs flex-1 w-full"
+                className="h-8 text-xs flex-1"
               >
                 {PRODUCT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -922,53 +934,43 @@ export default function OrdersPage() {
 
             {/* المقاس */}
             <div className="flex items-start gap-2">
-              <Label className="text-xs shrink-0 w-16 text-end mt-1.5">المقاس</Label>
-              <div className="flex-1">
-                {item.availableSizes.length > 0 ? (
-                  <div className="space-y-1">
-                    <div className="flex gap-1 flex-wrap">
-                      {item.availableSizes.map((s, si) => (
-                        <button
-                          key={si}
-                          type="button"
-                          onClick={() => updateProductItem(item.id, { size: s })}
-                          className={`px-2 py-0.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
-                            item.size === s
-                              ? "bg-[var(--accent)] text-white"
-                              : "bg-[var(--surface-secondary)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--foreground)]"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                    <Input
-                      value={item.size}
-                      onChange={(e) => updateProductItem(item.id, { size: e.target.value })}
-                      placeholder="يدوياً"
-                      className="h-7 text-xs"
-                    />
+              <Label className="text-xs shrink-0 w-14 text-end pt-2">المقاس</Label>
+              <div className="flex-1 space-y-1">
+                {item.availableSizes.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {item.availableSizes.map((s, si) => (
+                      <button
+                        key={si}
+                        type="button"
+                        onClick={() => updateProductItem(item.id, { size: s })}
+                        className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${
+                          item.size === s
+                            ? "bg-accent text-accent-foreground"
+                            : "border border-border hover:border-accent text-foreground"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <Input
-                    value={item.size}
-                    onChange={(e) => updateProductItem(item.id, { size: e.target.value })}
-                    placeholder="المقاس"
-                    className="h-7 text-xs"
-                  />
                 )}
+                <Input
+                  value={item.size}
+                  onChange={(e) => updateProductItem(item.id, { size: e.target.value })}
+                  className="h-8 text-xs"
+                />
               </div>
             </div>
 
-            {/* سعر الشراء */}
+            {/* شراء ليرة */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-16 text-end">شراء ليرة</Label>
+              <Label className="text-xs shrink-0 w-14 text-end">شراء ₺</Label>
               <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={item.purchaseCost}
-                className="h-7 text-xs flex-1"
+                className="h-8 text-xs flex-1"
                 onChange={(e) => {
                   const val = e.target.value;
                   const lira = parseFloat(val) || 0;
@@ -981,15 +983,15 @@ export default function OrdersPage() {
               />
             </div>
 
-            {/* سعر البيع */}
+            {/* بيع دينار */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-16 text-end">بيع دينار</Label>
+              <Label className="text-xs shrink-0 w-14 text-end">بيع د.ع</Label>
               <Input
                 type="number"
                 step="1"
                 min="0"
                 value={item.sellingPrice}
-                className="h-7 text-xs flex-1"
+                className="h-8 text-xs flex-1"
                 onChange={(e) => updateProductItem(item.id, { sellingPrice: e.target.value })}
               />
             </div>
