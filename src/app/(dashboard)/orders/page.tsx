@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   Plus,
@@ -435,6 +435,15 @@ export default function OrdersPage() {
   const [fetchingItemId, setFetchingItemId] = useState<string | null>(null);
   const [fetchingIG, setFetchingIG] = useState(false);
 
+  // Always-current ref so useCallback closures read latest productItems
+  const productItemsRef = useRef(productItems);
+  productItemsRef.current = productItems;
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
   // Extract Instagram username instantly from URL, then try API for display name
   useEffect(() => {
     const raw = form.instagram.trim();
@@ -555,39 +564,27 @@ export default function OrdersPage() {
   }, [totalSellingPrice, form.deliveryCost, form.deposit]);
 
   const handleFetchProduct = useCallback(async (itemId: string) => {
-    setProductItems((prev) => {
-      const item = prev.find((i) => i.id === itemId);
-      if (!item || !item.productLink) return prev;
-      return prev; // just need item ref, actual fetch below
-    });
+    const item = productItemsRef.current.find((i) => i.id === itemId);
+    if (!item?.productLink?.trim()) return;
+    const productLink = item.productLink;
 
     setFetchingItemId(itemId);
-    // Read link directly from state snapshot
-    let productLink = "";
-    setProductItems((prev) => {
-      const item = prev.find((i) => i.id === itemId);
-      if (item) productLink = item.productLink;
-      return prev;
-    });
-
-    if (!productLink) { setFetchingItemId(null); return; }
-
     try {
       const res = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: productLink }),
       });
-      if (!res.ok) { setFetchingItemId(null); return; }
+      if (!res.ok) return;
       const data = await res.json();
 
       const mainImage: string = data.image || data.allImages?.[0] || "";
       const fetchedImages: string[] = mainImage
         ? [...new Set([mainImage, ...(data.allImages || [])].filter(Boolean))].slice(0, 10)
         : [];
-      const firstColor = data.colors?.[0]?.name || "";
-      const firstSize = data.sizes?.[0] || "";
-      const rawPrice = data.price || "";
+      const firstColor: string = data.colors?.[0]?.name || "";
+      const firstSize: string = data.sizes?.[0] || "";
+      const rawPrice: string = data.price || "";
       const finalPurchaseCost = rawPrice ? String(parseFloat(rawPrice)) : "";
       const lira = parseFloat(finalPurchaseCost) || 0;
       const converted = lira > 0 ? lookupIQD(lira, rates.usdIqd, rates.usdTry) : 0;
@@ -596,16 +593,16 @@ export default function OrdersPage() {
         : "";
 
       setProductItems((prev) =>
-        prev.map((item) =>
-          item.id !== itemId ? item : {
-            ...item,
-            productName: data.name || item.productName,
-            productType: data.productType || item.productType,
-            color: firstColor || item.color,
-            size: firstSize || item.size,
-            purchaseCost: finalPurchaseCost || item.purchaseCost,
-            sellingPrice: sellingPrice || item.sellingPrice,
-            images: mainImage ? JSON.stringify([mainImage]) : item.images,
+        prev.map((it) =>
+          it.id !== itemId ? it : {
+            ...it,
+            productName: data.name || it.productName,
+            productType: data.productType || it.productType,
+            color: firstColor || it.color,
+            size: firstSize || it.size,
+            purchaseCost: finalPurchaseCost || it.purchaseCost,
+            sellingPrice: sellingPrice || it.sellingPrice,
+            images: mainImage ? JSON.stringify([mainImage]) : it.images,
             selectedImageIdx: 0,
             fetchedImages,
             availableColors: data.colors || [],
@@ -613,8 +610,8 @@ export default function OrdersPage() {
           }
         )
       );
-    } catch { /* silently ignore */ }
-    setFetchingItemId(null);
+    } catch { /* ignore */ }
+    finally { setFetchingItemId(null); }
   }, [rates.usdIqd, rates.usdTry]);
 
   // Auto-fetch product info when any item's productLink changes
