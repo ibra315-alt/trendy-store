@@ -282,6 +282,19 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   Other: "أخرى",
 };
 
+function pickSingleImage(fetchedImages: string[], selectedIdx: number, fallback: string): string | null {
+  if (fetchedImages.length > 0) {
+    const img = fetchedImages[selectedIdx ?? 0] || fetchedImages[0];
+    return img ? JSON.stringify([img]) : null;
+  }
+  if (!fallback) return null;
+  try {
+    const arr = JSON.parse(fallback);
+    if (Array.isArray(arr) && arr.length > 0) return JSON.stringify([arr[0]]);
+  } catch { /* fallback is a plain URL */ }
+  return JSON.stringify([fallback]);
+}
+
 function openInvoice(order: Order) {
   const finalPrice = order.sellingPrice + order.deliveryCost - order.deposit;
   const productImages = order.images ? JSON.parse(order.images) : [];
@@ -743,24 +756,22 @@ export default function OrdersPage() {
         status: form.status,
         paymentStatus: form.paymentStatus,
         notes: form.notes,
-        images: firstItem.fetchedImages.length > 0
-          ? JSON.stringify([firstItem.fetchedImages[firstItem.selectedImageIdx ?? 0]])
-          : firstItem.images || null,
+        images: pickSingleImage(firstItem.fetchedImages, firstItem.selectedImageIdx, firstItem.images),
         items: productItems.length > 1
           ? JSON.stringify(
-              productItems.slice(1).map((i) => {
-                const img = i.fetchedImages[i.selectedImageIdx ?? 0] || i.fetchedImages[0];
-                return {
-                  productType: i.productType,
-                  productName: i.productName,
-                  color: i.color,
-                  size: i.size,
-                  purchaseCost: i.purchaseCost,
-                  sellingPrice: i.sellingPrice,
-                  productLink: i.productLink,
-                  images: img ? [img] : [],
-                };
-              })
+              productItems.slice(1).map((i) => ({
+                productType: i.productType,
+                productName: i.productName,
+                color: i.color,
+                size: i.size,
+                purchaseCost: i.purchaseCost,
+                sellingPrice: i.sellingPrice,
+                productLink: i.productLink,
+                images: (() => {
+                  const img = pickSingleImage(i.fetchedImages, i.selectedImageIdx, i.images);
+                  return img ? JSON.parse(img) : [];
+                })(),
+              }))
             )
           : null,
       };
