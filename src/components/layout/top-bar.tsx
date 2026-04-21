@@ -64,14 +64,14 @@ export function AppNavbar() {
             title="الرئيسية"
           >
             <span
-              className="text-sm font-light tracking-widest text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors duration-200"
-              style={{ letterSpacing: "0.15em" }}
+              className="text-base font-light text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors duration-200"
+              style={{ letterSpacing: "0.18em" }}
             >
               trendy
             </span>
             <span
-              className="text-sm font-bold tracking-widest bg-gradient-to-l from-[var(--accent)] to-purple-500 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity duration-200"
-              style={{ letterSpacing: "0.15em" }}
+              className="text-base font-bold bg-gradient-to-l from-[var(--accent)] to-purple-500 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity duration-200"
+              style={{ letterSpacing: "0.18em" }}
             >
               &nbsp;store
             </span>

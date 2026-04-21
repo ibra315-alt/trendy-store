@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   Plus,
@@ -444,6 +445,8 @@ function parseSubItems(items?: string | null): SubItem[] {
 
 export default function OrdersPage() {
   const { token, isAdmin } = useAuthStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const ordersRef = useRef<Order[]>([]);
@@ -460,6 +463,15 @@ export default function OrdersPage() {
     fetch("/api/settings").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setRates({ usdIqd: d.usdToIqd || BASE_IQD, usdTry: d.usdToTry || BASE_TRY });
     }).catch(() => {});
+  }, []);
+
+  // Open new order dialog when navigated with ?new=true
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      handleNewOrder();
+      router.replace("/orders");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [activeTab, setActiveTab] = useState("active");
