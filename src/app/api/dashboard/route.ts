@@ -19,6 +19,7 @@ export async function GET() {
     unpaidDelivered,
     settings,
     last7DaysOrders,
+    statusGroups,
   ] = await Promise.all([
     db.order.count(),
     db.order.count({ where: { status: { in: ["new", "in_progress"] } } }),
@@ -44,6 +45,10 @@ export async function GET() {
     db.order.findMany({
       where: { createdAt: { gte: sevenDaysAgo } },
       select: { createdAt: true, sellingPrice: true },
+    }),
+    db.order.groupBy({
+      by: ["status"],
+      _count: { id: true },
     }),
   ]);
 
@@ -93,5 +98,6 @@ export async function GET() {
     unpaidDelivered,
     settings,
     dailyStats,
+    statusCounts: statusGroups.map((g) => ({ status: g.status, count: g._count.id })),
   });
 }

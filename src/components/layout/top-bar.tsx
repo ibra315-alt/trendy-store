@@ -65,21 +65,21 @@ export function AppNavbar() {
             title="الرئيسية"
           >
             <span
-              className="text-base font-light text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors duration-200"
-              style={{ letterSpacing: "0.18em" }}
+              className="transition-opacity duration-200 group-hover:opacity-75"
+              style={{ fontSize: "17px", fontWeight: 500, letterSpacing: "0.16em", color: "var(--foreground)" }}
             >
               trendy
             </span>
             <span
-              className="text-base font-bold bg-gradient-to-l from-[var(--accent)] to-purple-500 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity duration-200"
-              style={{ letterSpacing: "0.18em" }}
+              className="transition-opacity duration-200 group-hover:opacity-75"
+              style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.16em", color: "#c9a84c" }}
             >
               &nbsp;store
             </span>
           </a>
           <div className="hidden sm:flex items-center gap-1.5">
             <ChevronLeft size={13} strokeWidth={1.5} className="text-[var(--muted)] opacity-40" />
-            <span className="text-sm font-medium text-[var(--foreground)]">{title}</span>
+            <span className="text-sm font-semibold" style={{ color: "#c9a84c" }}>{title}</span>
           </div>
         </div>
 
