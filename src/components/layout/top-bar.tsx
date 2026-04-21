@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Search, ChevronLeft } from "lucide-react";
+import { Sun, Moon, Search, ChevronLeft, Plus } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 
 const pageTitles: Record<string, string> = {
@@ -33,6 +33,7 @@ export function AppNavbar() {
   useEffect(() => setMounted(true), []);
 
   const isDark = theme === "dark";
+  const router = useRouter();
 
   const openCommandBar = useCallback(() => {
     window.dispatchEvent(new CustomEvent("toggle-command-bar"));
@@ -82,8 +83,18 @@ export function AppNavbar() {
           </div>
         </div>
 
-        {/* Left side: Search + Theme + User + Logout */}
+        {/* Left side: Add Order + Search + Theme */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Add new order button */}
+          <button
+            onClick={() => router.push("/orders?new=true")}
+            title="طلب جديد"
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gradient-to-l from-[var(--accent)] to-purple-500 text-white text-sm font-medium shadow-sm hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            <span className="hidden sm:inline">طلب جديد</span>
+          </button>
+
           {/* Search — icon on mobile, full bar on desktop */}
           <button
             onClick={openCommandBar}

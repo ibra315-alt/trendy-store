@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -9,7 +9,6 @@ import {
   Users,
   DollarSign,
   Settings,
-  Plus,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 
@@ -24,7 +23,6 @@ const navItems = [
 
 export function Dock() {
   const pathname = usePathname();
-  const router = useRouter();
   const isAdmin = useAuthStore((s) => s.isAdmin);
 
   const filteredItems = navItems.filter((item) => {
@@ -45,20 +43,6 @@ export function Dock() {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {/* Add Order FAB */}
-      <button
-        onClick={() => router.push("/orders?new=true")}
-        className="relative flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl transition-all duration-200 group text-white"
-        title="طلب جديد"
-      >
-        <div className="relative flex items-center justify-center w-10 h-8 rounded-xl bg-gradient-to-br from-[var(--accent)] to-purple-500 shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
-          <Plus size={20} strokeWidth={2.5} />
-        </div>
-        <span className="text-[10px] font-medium text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors duration-200 leading-tight">
-          طلب جديد
-        </span>
-      </button>
-
       {filteredItems.map((item) => {
         const Icon = item.icon;
         const active = isActive(item.href);
