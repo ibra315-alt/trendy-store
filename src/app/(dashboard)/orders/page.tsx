@@ -1635,22 +1635,6 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {/* Mobile FAB — new order */}
-      <button
-        type="button"
-        onClick={handleNewOrder}
-        className="md:hidden fixed z-40 flex items-center justify-center h-14 w-14 rounded-full shadow-2xl"
-        style={{
-          bottom: "calc(88px + env(safe-area-inset-bottom, 0px))",
-          right: "1rem",
-          background: "#c9a84c",
-          color: "#111111",
-        }}
-        title="طلب جديد"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </button>
-
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
