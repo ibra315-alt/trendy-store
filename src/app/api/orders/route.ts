@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
   const search = url.searchParams.get("search");
 
   const where: Record<string, unknown> = {};
-  if (status && status !== "all") where.status = status;
+  if (status === "active") {
+    where.status = { in: ["new", "in_progress"] };
+  } else if (status && status !== "all") {
+    where.status = status;
+  }
   if (paymentStatus && paymentStatus !== "all") where.paymentStatus = paymentStatus;
   if (batchId) where.batchId = batchId;
   if (search) {

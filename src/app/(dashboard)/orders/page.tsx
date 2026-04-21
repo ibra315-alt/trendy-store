@@ -125,6 +125,7 @@ interface ProductItem {
 // ---------------------------------------------------------------------------
 
 const STATUS_TABS = [
+  { label: "النشطة", value: "active" },
   { label: "الكل", value: "all" },
   { label: "جديد", value: "new" },
   { label: "قيد التنفيذ", value: "in_progress" },
@@ -459,7 +460,7 @@ export default function OrdersPage() {
     }).catch(() => {});
   }, []);
 
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("active");
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
 
@@ -487,11 +488,6 @@ export default function OrdersPage() {
     setStatusDropId(null);
     if (prevStatus === nextStatus) return;
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: nextStatus } : o));
-    // If current tab filters by a status that no longer includes this order, switch to "all"
-    setActiveTab((tab) => {
-      if (tab !== "all" && tab !== "unpaid" && tab !== nextStatus) return "all";
-      return tab;
-    });
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PUT",
@@ -522,11 +518,6 @@ export default function OrdersPage() {
     setPaymentDropId(null);
     if (prevStatus === nextStatus) return;
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, paymentStatus: nextStatus } : o));
-    // If on "unpaid" tab and payment is no longer unpaid, switch to "all"
-    setActiveTab((tab) => {
-      if (tab === "unpaid" && nextStatus !== "unpaid") return "all";
-      return tab;
-    });
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PUT",
@@ -596,7 +587,7 @@ export default function OrdersPage() {
       if (activeTab === "unpaid") {
         params.set("paymentStatus", "unpaid");
       } else if (activeTab !== "all") {
-        params.set("status", activeTab);
+        params.set("status", activeTab); // "active" handled by API as new+in_progress
       }
       if (searchDebounced) params.set("search", searchDebounced);
 
