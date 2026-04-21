@@ -1511,7 +1511,7 @@ export default function OrdersPage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="area" className="text-xs">المنطقة</Label>
-                <Input id="area" value={form.area} onChange={(e) => setField("area", e.target.value)} className="h-8 text-sm" />
+                <Input id="area" value={form.area} onChange={(e) => setField("area", e.target.value)} className="h-8 text-sm" style={{ height: "2rem" }} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="batchId" className="text-xs">الشحنة</Label>
@@ -1523,7 +1523,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Pricing + Total */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 items-end">
               <div className="space-y-1">
                 <Label htmlFor="deliveryCost" className="text-xs">توصيل</Label>
                 <Select id="deliveryCost" value={form.deliveryCost} onChange={(e) => setField("deliveryCost", e.target.value)} className="h-8 text-sm">
@@ -1533,14 +1533,12 @@ export default function OrdersPage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="deposit" className="text-xs">عربون</Label>
-                <Input id="deposit" type="number" step="1" min="0" value={form.deposit} onChange={(e) => setField("deposit", e.target.value)} className="h-8 text-sm" />
+                <Input id="deposit" type="number" step="1" min="0" value={form.deposit} onChange={(e) => setField("deposit", e.target.value)} className="h-8 text-sm" style={{ height: "2rem" }} />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">السعر الكلي</Label>
-                <div className="h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white"
-                  style={{ background: "linear-gradient(135deg, #059669, #10b981)" }}>
-                  {formatIQD(finalPrice)}
-                </div>
+              <div className="rounded-xl flex flex-col items-center justify-center gap-1 py-3"
+                style={{ background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", minHeight: "4rem" }}>
+                <span className="text-[10px] font-medium opacity-60">السعر الكلي</span>
+                <span className="text-sm font-bold">{formatIQD(finalPrice)}</span>
               </div>
             </div>
 
