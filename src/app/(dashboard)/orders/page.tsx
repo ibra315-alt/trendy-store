@@ -1153,7 +1153,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
+      <div className="relative w-full md:max-w-sm">
         <Search className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="البحث في الطلبات..."
@@ -1163,8 +1163,8 @@ export default function OrdersPage() {
         />
       </div>
 
-      {/* Orders Table */}
-      <Card className="card-hover overflow-hidden">
+      {/* Orders Table — desktop only */}
+      <Card className="card-hover overflow-hidden hidden md:block">
         <CardHeader>
           <CardTitle className="text-lg">
             الطلبات{" "}
@@ -1456,6 +1456,191 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Mobile Order Cards — visible only on small screens */}
+      <div className="md:hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="py-16 text-center text-muted-foreground animate-fade-in-up">
+            لا توجد طلبات
+          </div>
+        ) : (
+          <div className="space-y-3 pb-32">
+            {orders.map((order, idx) => {
+              const imgs = order.images ? (() => { try { return JSON.parse(order.images!); } catch { return []; } })() : [];
+              return (
+                <div
+                  key={order.id}
+                  className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-3.5 space-y-3 animate-fade-in-up"
+                  style={{ animationDelay: `${idx * 30}ms` }}
+                >
+                  {/* Image + info */}
+                  <div className="flex gap-3">
+                    <div className="shrink-0 self-start">
+                      {imgs.length > 0 ? (
+                        <button type="button" onClick={() => setPreviewImg(imgs[0])}>
+                          <img
+                            src={imgs[0]}
+                            alt=""
+                            className="h-16 w-16 rounded-xl object-cover border border-[var(--border)] cursor-zoom-in"
+                          />
+                        </button>
+                      ) : (
+                        <div className="h-16 w-16 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center">
+                          <ImageIcon className="h-5 w-5 text-[var(--muted)]" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      {/* Name + tappable status badge */}
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-sm leading-snug truncate text-[var(--foreground)]">
+                          {order.customer?.name || "-"}
+                        </p>
+                        <div
+                          className="relative shrink-0"
+                          ref={statusDropId === order.id ? statusDropRef : undefined}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setStatusDropId(statusDropId === order.id ? null : order.id)}
+                          >
+                            <Badge
+                              variant={statusBadgeVariant(order.status) as "default" | "secondary" | "destructive" | "outline" | "success" | "warning"}
+                              className="hover:opacity-80 transition-opacity"
+                            >
+                              {prettyStatus(order.status)}
+                            </Badge>
+                          </button>
+                          {statusDropId === order.id && (
+                            <div
+                              className="absolute z-50 top-full mt-1 end-0 rounded-lg shadow-xl overflow-hidden min-w-[9rem]"
+                              style={{ backgroundColor: "#1e1e2e", border: "1px solid #333" }}
+                            >
+                              {STATUS_OPTIONS.map((s) => {
+                                const colors: Record<string, string> = {
+                                  new:         "#3b82f6",
+                                  in_progress: "#eab308",
+                                  bought:      "#a855f7",
+                                  shipped:     "#f97316",
+                                  delivered:   "#22c55e",
+                                };
+                                const active = order.status === s.value;
+                                return (
+                                  <button
+                                    key={s.value}
+                                    type="button"
+                                    onClick={() => updateOrderStatus(order.id, order.status, s.value)}
+                                    style={{
+                                      backgroundColor: active ? colors[s.value] + "33" : "transparent",
+                                      color: colors[s.value] ?? "#e5e7eb",
+                                      borderRight: active ? `3px solid ${colors[s.value]}` : "3px solid transparent",
+                                    }}
+                                    className="w-full text-start px-3 py-2 text-sm font-medium transition-colors hover:brightness-125"
+                                  >
+                                    {s.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Product type · color · size */}
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1">
+                        <span className="text-xs text-[var(--muted)]">
+                          {PRODUCT_TYPE_LABELS[order.productType] || order.productType}
+                        </span>
+                        {order.color && (
+                          <span className="text-xs text-[var(--muted)]">· {order.color}</span>
+                        )}
+                        {order.size && (
+                          <span className="text-xs text-[var(--muted)]">· {order.size}</span>
+                        )}
+                      </div>
+
+                      {/* Price + date */}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm font-bold" style={{ color: "#c9a84c" }}>
+                          {formatIQD(order.sellingPrice)}
+                        </span>
+                        <span className="text-xs text-[var(--muted)]">
+                          {format(new Date(order.createdAt), "dd/MM/yyyy")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions row */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-[var(--border)]/40">
+                    <div className="flex items-center gap-0.5">
+                      <a
+                        href={buildWhatsAppUrl(order)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
+                        title="واتساب"
+                      >
+                        <MessageCircle className="h-4 w-4 text-green-600" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(order)}
+                        className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
+                        title="تعديل"
+                      >
+                        <Pencil className="h-4 w-4 text-[var(--muted)]" />
+                      </button>
+                      {isAdmin() && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(order)}
+                          className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-red-500/10 transition-colors"
+                          title="حذف"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </button>
+                      )}
+                    </div>
+                    {order.productLink ? (
+                      <a
+                        href={order.productLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-secondary)] transition-colors text-[var(--foreground)]"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        فتح
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Mobile FAB — new order */}
+      <button
+        type="button"
+        onClick={handleNewOrder}
+        className="md:hidden fixed z-40 flex items-center justify-center h-14 w-14 rounded-full shadow-2xl"
+        style={{
+          bottom: "calc(88px + env(safe-area-inset-bottom, 0px))",
+          right: "1rem",
+          background: "#c9a84c",
+          color: "#111111",
+        }}
+        title="طلب جديد"
+      >
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
+      </button>
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
