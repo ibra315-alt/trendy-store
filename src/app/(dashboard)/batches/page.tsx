@@ -29,6 +29,9 @@ import {
   CheckCircle2,
   ImageIcon,
   X,
+  MessageCircle,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { formatIQD, formatUSD, formatTRY } from "@/lib/utils";
@@ -115,6 +118,73 @@ const ORDER_STATUS_COLORS: Record<string, string> = {
   delivered: "bg-green-500/10 text-green-600",
   cancelled: "bg-red-500/10 text-red-600",
 };
+
+const PRODUCT_TYPE_LABELS: Record<string, string> = {
+  Bag: "حقيبة", Shoe: "حذاء", Clothing: "ملابس", Accessory: "إكسسوار", Other: "أخرى",
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  paid: "مدفوع", partial: "دفع جزئي", unpaid: "غير مدفوع",
+};
+
+function buildWhatsAppUrl(order: Order): string {
+  const phone = (order.phone || order.customer?.phone || "").replace(/\D/g, "");
+  const remaining = order.sellingPrice + order.deliveryCost - order.deposit;
+  const type = PRODUCT_TYPE_LABELS[order.productType] || order.productType;
+  const text = encodeURIComponent(
+    `مرحباً ${order.customer?.name || ""},\n\n` +
+    `طلبك من متجر ترندي:\n` +
+    `المنتج: ${type}${order.productName ? " - " + order.productName : ""}\n` +
+    (order.color ? `اللون: ${order.color}\n` : "") +
+    (order.size ? `المقاس: ${order.size}\n` : "") +
+    `السعر: ${formatIQD(order.sellingPrice)}\n` +
+    `التوصيل: ${formatIQD(order.deliveryCost)}\n` +
+    (order.deposit > 0 ? `العربون: ${formatIQD(order.deposit)}\n` : "") +
+    `المتبقي: ${formatIQD(remaining)}\n\n` +
+    `الحالة: ${ORDER_STATUS_OPTIONS.find(s => s.value === order.status)?.label || order.status}\n` +
+    `شكراً لك!`
+  );
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
+function openInvoice(order: Order) {
+  const remaining = order.sellingPrice + order.deliveryCost - order.deposit;
+  let imgHtml = "";
+  try {
+    const imgs = JSON.parse(order.images ?? "");
+    if (Array.isArray(imgs) && imgs[0])
+      imgHtml = `<div style="text-align:center;margin:16px 0;"><img src="${imgs[0]}" style="max-width:200px;max-height:200px;border-radius:8px;border:1px solid #e0e0e0;" /></div>`;
+  } catch { /* ignore */ }
+  const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><title>فاتورة</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1a1a1a;max-width:800px;margin:0 auto;direction:rtl;}
+  .header{text-align:center;margin-bottom:32px;border-bottom:3px solid #1a1a1a;padding-bottom:16px;}.header h1{font-size:28px;font-weight:700;}
+  .section{margin-bottom:24px;}.section-title{font-size:14px;font-weight:600;color:#666;margin-bottom:8px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 32px;}.field{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e0e0e0;}
+  .field-label{font-weight:500;color:#555;}.field-value{font-weight:600;}
+  .totals{background:#f8f8f8;border-radius:8px;padding:16px;margin-top:24px;}.total-row{font-size:18px;border-bottom:none;padding-top:12px;}
+  </style></head><body>
+  <div class="header"><h1>متجر ترندي</h1><p>فاتورة</p></div>
+  ${imgHtml}
+  <div class="section"><div class="section-title">العميل</div><div class="grid">
+  <div class="field"><span class="field-label">الاسم</span><span class="field-value">${order.customer?.name || "-"}</span></div>
+  <div class="field"><span class="field-label">الهاتف</span><span class="field-value">${order.phone || order.customer?.phone || "-"}</span></div>
+  </div></div>
+  <div class="section"><div class="section-title">المنتج</div><div class="grid">
+  <div class="field"><span class="field-label">النوع</span><span class="field-value">${PRODUCT_TYPE_LABELS[order.productType] || order.productType}</span></div>
+  <div class="field"><span class="field-label">الاسم</span><span class="field-value">${order.productName || "-"}</span></div>
+  <div class="field"><span class="field-label">اللون</span><span class="field-value">${order.color || "-"}</span></div>
+  <div class="field"><span class="field-label">المقاس</span><span class="field-value">${order.size || "-"}</span></div>
+  </div></div>
+  <div class="totals"><div class="section-title">الأسعار</div>
+  <div class="field"><span class="field-label">سعر البيع</span><span class="field-value">${formatIQD(order.sellingPrice)}</span></div>
+  <div class="field"><span class="field-label">التوصيل</span><span class="field-value">${formatIQD(order.deliveryCost)}</span></div>
+  <div class="field"><span class="field-label">العربون</span><span class="field-value">- ${formatIQD(order.deposit)}</span></div>
+  <div class="field total-row"><span class="field-label">المتبقي</span><span class="field-value">${formatIQD(remaining)}</span></div>
+  </div>
+  <script>window.onload=function(){window.print();};</script></body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
 
 function batchStatusBadge(status: string) {
   const map: Record<string, { label: string; className: string }> = {
@@ -347,13 +417,24 @@ function BatchOrdersModal({
                   ) : (
                     /* Action buttons */
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEdit(order)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => startEdit(order)}>
                         <Pencil size={13} className="me-1.5" />
                         تعديل
+                      </Button>
+
+                      <a
+                        href={buildWhatsAppUrl(order)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md border border-[var(--border)] text-xs font-medium hover:bg-[var(--surface-secondary)] transition-colors text-green-600"
+                      >
+                        <MessageCircle size={13} />
+                        واتساب
+                      </a>
+
+                      <Button size="sm" variant="outline" onClick={() => openInvoice(order)}>
+                        <FileText size={13} className="me-1.5" />
+                        طباعة
                       </Button>
 
                       <Button
