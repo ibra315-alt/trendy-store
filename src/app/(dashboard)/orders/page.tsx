@@ -1523,7 +1523,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Pricing + Total */}
-            <div className="grid grid-cols-3 gap-3 items-end">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="deliveryCost" className="text-xs">توصيل</Label>
                 <Select id="deliveryCost" value={form.deliveryCost} onChange={(e) => setField("deliveryCost", e.target.value)} className="h-8 text-sm">
@@ -1535,9 +1535,12 @@ export default function OrdersPage() {
                 <Label htmlFor="deposit" className="text-xs">عربون</Label>
                 <Input id="deposit" type="number" step="1" min="0" value={form.deposit} onChange={(e) => setField("deposit", e.target.value)} className="h-8 text-sm" />
               </div>
-              <div className="rounded-lg bg-accent text-accent-foreground px-3 py-2 flex flex-col items-center justify-center">
-                <span className="text-xs opacity-75">المتبقي للدفع</span>
-                <span className="text-lg font-bold leading-tight">{formatIQD(finalPrice)}</span>
+              <div className="space-y-1">
+                <Label className="text-xs">السعر الكلي</Label>
+                <div className="h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white"
+                  style={{ background: "linear-gradient(135deg, #059669, #10b981)" }}>
+                  {formatIQD(finalPrice)}
+                </div>
               </div>
             </div>
 
