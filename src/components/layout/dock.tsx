@@ -37,10 +37,11 @@ export function Dock() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-2 sm:justify-center sm:gap-2 bg-card/40 backdrop-blur-3xl border-t border-border/30"
+      className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center px-2 sm:px-3 py-2 rounded-[2.5rem] bg-card/85 backdrop-blur-3xl border border-[var(--border)]/40"
       style={{
-        height: "calc(80px + env(safe-area-inset-bottom, 0px))",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        bottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.45), 0 2px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)",
+        maxWidth: "calc(100vw - 32px)",
       }}
     >
       {filteredItems.map((item) => {
