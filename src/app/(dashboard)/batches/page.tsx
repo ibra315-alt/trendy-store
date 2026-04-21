@@ -27,6 +27,8 @@ import {
   ArrowRightLeft,
   RotateCcw,
   CheckCircle2,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { formatIQD, formatUSD, formatTRY } from "@/lib/utils";
@@ -40,6 +42,8 @@ interface Order {
   productName: string | null;
   color: string | null;
   size: string | null;
+  images: string | null;
+  items: string | null;
   purchaseCost: number;
   sellingPrice: number;
   deliveryCost: number;
@@ -47,7 +51,12 @@ interface Order {
   status: string;
   paymentStatus: string;
   notes: string | null;
-  customer: { id: string; name: string; phone?: string };
+  phone: string | null;
+  governorate: string | null;
+  area: string | null;
+  productLink: string | null;
+  instagramLink: string | null;
+  customer: { id: string; name: string; phone?: string; instagram?: string };
 }
 
 interface Batch {
@@ -141,6 +150,7 @@ function BatchOrdersModal({
   const [editNotes, setEditNotes] = useState("");
   const [movingOrderId, setMovingOrderId] = useState<string | null>(null);
   const [targetBatchId, setTargetBatchId] = useState("");
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
 
   const otherBatches = batches.filter((b) => b.id !== batch.id);
 
@@ -383,6 +393,23 @@ function BatchOrdersModal({
                     </div>
                   )}
 
+                  {/* Images */}
+                  {(() => {
+                    const allImgs: string[] = [];
+                    try { const p = JSON.parse(order.images ?? ""); if (Array.isArray(p)) allImgs.push(...p); } catch { if (order.images) allImgs.push(order.images); }
+                    try { const subs = JSON.parse(order.items ?? ""); if (Array.isArray(subs)) subs.forEach((s: {images?: string[]}) => { if (Array.isArray(s.images)) allImgs.push(...s.images); }); } catch { /* ignore */ }
+                    if (allImgs.length === 0) return null;
+                    return (
+                      <div className="flex gap-2 flex-wrap pt-1 border-t border-[var(--border)]">
+                        {allImgs.map((img, i) => (
+                          <button key={i} type="button" onClick={() => setPreviewImg(img)} className="shrink-0">
+                            <img src={img} alt="" className="h-16 w-16 rounded-xl object-cover border border-[var(--border)] hover:opacity-80 transition-opacity cursor-zoom-in" />
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
                   {/* Order details */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[var(--border)]">
                     <div className="text-xs">
@@ -414,6 +441,18 @@ function BatchOrdersModal({
           );
         })}
       </div>
+
+      {/* Image preview */}
+      {previewImg && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-6" onClick={() => setPreviewImg(null)}>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img src={previewImg} alt="" className="max-w-sm max-h-[70vh] rounded-xl object-contain shadow-2xl" />
+            <button onClick={() => setPreviewImg(null)} className="absolute -top-2.5 -right-2.5 bg-[var(--background)] border border-[var(--border)] rounded-full p-1 shadow hover:bg-[var(--surface-secondary)] transition-colors">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
