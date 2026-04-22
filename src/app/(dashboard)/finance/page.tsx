@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { formatIQD, formatUSD, formatTRY } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,14 +59,10 @@ interface Settings {
   tryToIqd: number;
 }
 
-const paymentLabels: Record<string, string> = {
-  unpaid: "غير مدفوع",
-  partial: "دفع جزئي",
-  paid: "مدفوع",
-};
-
 export default function FinancePage() {
   const { isAdmin } = useAuthStore();
+  const t = useT();
+  const paymentLabels: Record<string, string> = { ...t.orders.status };
   const [orders, setOrders] = useState<Order[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -95,7 +92,7 @@ export default function FinancePage() {
   if (!isAdmin()) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-muted-foreground">صلاحية المسؤول مطلوبة.</p>
+        <p className="text-muted-foreground">{t.settings.adminRequired}</p>
       </div>
     );
   }
@@ -103,7 +100,7 @@ export default function FinancePage() {
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-muted-foreground">جاري تحميل البيانات المالية...</p>
+        <p className="text-muted-foreground">{t.finance.loading}</p>
       </div>
     );
   }
@@ -140,10 +137,10 @@ export default function FinancePage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Calculator className="h-6 w-6" />
-          المالية
+          {t.finance.title}
         </h1>
         <p className="text-muted-foreground text-sm">
-          نظرة عامة على الوضع المالي والديون المستحقة
+          {t.finance.subtitle}
         </p>
       </div>
 
@@ -152,7 +149,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              إجمالي الإيرادات المحصلة
+              {t.finance.stats.revenue}
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -161,7 +158,7 @@ export default function FinancePage() {
               {formatIQD(totalRevenue)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              من {paidOrders.length} طلب مدفوع
+              {t.finance.stats.revenueSub(paidOrders.length)}
             </p>
           </CardContent>
         </Card>
@@ -169,7 +166,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              إجمالي التكاليف المقدرة
+              {t.finance.stats.costs}
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -178,7 +175,7 @@ export default function FinancePage() {
               {formatIQD(totalCostsIQD)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatTRY(totalCostsTRY)} x {tryToIqd} د.ع/ل.ت
+              {t.finance.stats.costsSub(formatTRY(totalCostsTRY), tryToIqd)}
             </p>
           </CardContent>
         </Card>
@@ -186,7 +183,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              إجمالي الشحن
+              {t.finance.stats.shipping}
             </CardTitle>
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -195,14 +192,14 @@ export default function FinancePage() {
               {formatIQD(totalShippingIQD)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatUSD(totalShippingUSD)} x {usdToIqd} د.ع/دولار
+              {t.finance.stats.shippingSub(formatUSD(totalShippingUSD), usdToIqd)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.finance.stats.profit}</CardTitle>
             <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -214,7 +211,7 @@ export default function FinancePage() {
               {formatIQD(netProfit)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              الإيرادات - التكاليف - الشحن
+              {t.finance.stats.profitSub}
             </p>
           </CardContent>
         </Card>
@@ -225,10 +222,9 @@ export default function FinancePage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>الديون المستحقة</CardTitle>
+              <CardTitle>{t.finance.debts.title}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {debts.length} طلب غير مدفوع/جزئي{" "}
-                &mdash; إجمالي المستحق: {formatIQD(totalDebt)}
+                {t.finance.debts.subtitle(debts.length, formatIQD(totalDebt))}
               </p>
             </div>
           </div>
@@ -237,21 +233,21 @@ export default function FinancePage() {
           {debts.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground">
-                لا توجد ديون مستحقة. جميع العملاء دفعوا بالكامل!
+                {t.finance.debts.empty}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>العميل</TableHead>
-                  <TableHead>المنتج</TableHead>
-                  <TableHead className="text-start">السعر الإجمالي</TableHead>
-                  <TableHead className="text-start">العربون</TableHead>
-                  <TableHead className="text-start">المبلغ المستحق</TableHead>
-                  <TableHead>الهاتف</TableHead>
-                  <TableHead>حالة الدفع</TableHead>
-                  <TableHead className="text-start">التواصل</TableHead>
+                  <TableHead>{t.finance.debts.colCustomer}</TableHead>
+                  <TableHead>{t.finance.debts.colProduct}</TableHead>
+                  <TableHead className="text-start">{t.finance.debts.colTotal}</TableHead>
+                  <TableHead className="text-start">{t.finance.debts.colDeposit}</TableHead>
+                  <TableHead className="text-start">{t.finance.debts.colOwed}</TableHead>
+                  <TableHead>{t.finance.debts.colPhone}</TableHead>
+                  <TableHead>{t.finance.debts.colPayment}</TableHead>
+                  <TableHead className="text-start">{t.finance.debts.colContact}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -266,7 +262,7 @@ export default function FinancePage() {
                   return (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">
-                        {order.customer?.name || "غير معروف"}
+                        {order.customer?.name || t.finance.debts.unknown}
                       </TableCell>
                       <TableCell>{order.productName}</TableCell>
                       <TableCell className="text-start">
