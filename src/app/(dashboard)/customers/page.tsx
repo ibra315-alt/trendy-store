@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/store/auth";
+import { useT } from "@/lib/i18n";
 import { formatIQD } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,22 +82,12 @@ const emptyForm: CustomerForm = {
   area: "",
 };
 
-const statusLabels: Record<string, string> = {
-  new: "جديد",
-  preparing: "قيد التحضير",
-  shipped: "تم الشحن",
-  delivered: "تم التوصيل",
-  cancelled: "ملغي",
-};
-
-const paymentLabels: Record<string, string> = {
-  unpaid: "غير مدفوع",
-  partial: "دفع جزئي",
-  paid: "مدفوع",
-};
-
 export default function CustomersPage() {
   const { isAdmin } = useAuthStore();
+  const t = useT();
+  const statusLabels: Record<string, string> = { ...t.orders.status };
+  const paymentLabels: Record<string, string> = { ...t.orders.status };
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -161,7 +152,7 @@ export default function CustomersPage() {
   if (!isAdmin()) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-muted-foreground">صلاحية المسؤول مطلوبة.</p>
+        <p className="text-muted-foreground">{t.settings.adminRequired}</p>
       </div>
     );
   }
@@ -238,7 +229,7 @@ export default function CustomersPage() {
         fetchCustomers();
       } else {
         const data = await res.json();
-        alert(data.error || "لا يمكن حذف عميل لديه طلبات");
+        alert(data.error || t.customers.deleteDialog.cannotDelete);
       }
     } catch (err) {
       console.error("Delete error:", err);
@@ -299,7 +290,7 @@ export default function CustomersPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                إجمالي الطلبات
+                {t.customers.detail.totalOrders}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -311,7 +302,7 @@ export default function CustomersPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                القيمة الإجمالية
+                {t.customers.detail.ltv}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -323,12 +314,12 @@ export default function CustomersPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                الحالة
+                {t.customers.detail.status}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                {selectedCustomer.isVIP ? "VIP" : "عادي"}
+                {selectedCustomer.isVIP ? "VIP" : t.customers.detail.regular}
               </p>
             </CardContent>
           </Card>
@@ -336,20 +327,20 @@ export default function CustomersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>سجل الطلبات</CardTitle>
+            <CardTitle>{t.customers.detail.orderHistory}</CardTitle>
           </CardHeader>
           <CardContent>
             {selectedCustomer.orders && selectedCustomer.orders.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>المنتج</TableHead>
-                    <TableHead>الدفعة</TableHead>
-                    <TableHead>السعر</TableHead>
-                    <TableHead>العربون</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>الدفع</TableHead>
-                    <TableHead>التاريخ</TableHead>
+                    <TableHead>{t.customers.detail.colProduct}</TableHead>
+                    <TableHead>{t.customers.detail.colBatch}</TableHead>
+                    <TableHead>{t.customers.detail.colPrice}</TableHead>
+                    <TableHead>{t.customers.detail.colDeposit}</TableHead>
+                    <TableHead>{t.customers.detail.colStatus}</TableHead>
+                    <TableHead>{t.customers.detail.colPayment}</TableHead>
+                    <TableHead>{t.customers.detail.colDate}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -386,7 +377,7 @@ export default function CustomersPage() {
               </Table>
             ) : (
               <p className="text-muted-foreground text-center py-8">
-                لا توجد طلبات بعد.
+                {t.customers.detail.noOrders}
               </p>
             )}
           </CardContent>
@@ -401,15 +392,15 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Users className="h-6 w-6" />
-            العملاء
+            {t.customers.title}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {customers.length} عميل
+            {t.customers.subtitle(customers.length)}
           </p>
         </div>
         <Button onClick={handleOpenCreate}>
           <Plus className="h-4 w-4 me-2" />
-          عميل جديد
+          {t.customers.newCustomer}
         </Button>
       </div>
 
@@ -417,7 +408,7 @@ export default function CustomersPage() {
       <div className="relative">
         <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="البحث في العملاء..."
+          placeholder={t.customers.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="ps-10"
@@ -429,26 +420,26 @@ export default function CustomersPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground">جاري تحميل العملاء...</p>
+              <p className="text-muted-foreground">{t.customers.loading}</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground">
-                {search ? "لا يوجد عملاء مطابقين للبحث." : "لا يوجد عملاء بعد."}
+                {search ? t.customers.noResults : t.customers.empty}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>الاسم</TableHead>
-                  <TableHead>انستغرام</TableHead>
-                  <TableHead>الهاتف</TableHead>
-                  <TableHead>المدينة / المنطقة</TableHead>
-                  <TableHead className="text-center">الطلبات</TableHead>
-                  <TableHead className="text-start">القيمة الإجمالية</TableHead>
-                  <TableHead className="text-center">VIP</TableHead>
-                  <TableHead className="text-start">الإجراءات</TableHead>
+                  <TableHead>{t.customers.table.name}</TableHead>
+                  <TableHead>{t.customers.table.instagram}</TableHead>
+                  <TableHead>{t.customers.table.phone}</TableHead>
+                  <TableHead>{t.customers.table.cityArea}</TableHead>
+                  <TableHead className="text-center">{t.customers.table.orders}</TableHead>
+                  <TableHead className="text-start">{t.customers.table.ltv}</TableHead>
+                  <TableHead className="text-center">{t.customers.table.vip}</TableHead>
+                  <TableHead className="text-start">{t.customers.table.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -519,21 +510,21 @@ export default function CustomersPage() {
           <DialogClose onClose={() => setDialogOpen(false)} />
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "تعديل العميل" : "عميل جديد"}
+              {editingId ? t.customers.dialog.editTitle : t.customers.dialog.newTitle}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="name">الاسم *</Label>
+              <Label htmlFor="name">{t.customers.dialog.nameLabel}</Label>
               <Input
                 id="name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="اسم العميل"
+                placeholder={t.customers.dialog.namePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="instagram">انستغرام</Label>
+              <Label htmlFor="instagram">{t.customers.dialog.instagramLabel}</Label>
               <div className="flex gap-2">
                 <Input
                   id="instagram"
@@ -541,7 +532,7 @@ export default function CustomersPage() {
                   onChange={(e) =>
                     setForm({ ...form, instagram: e.target.value })
                   }
-                  placeholder="اسم المستخدم (بدون @)"
+                  placeholder={t.customers.dialog.instagramPlaceholder}
                   className="flex-1"
                   onBlur={() => {
                     if (form.instagram && !form.name) fetchInstagramName();
@@ -553,47 +544,47 @@ export default function CustomersPage() {
                   size="sm"
                   onClick={fetchInstagramName}
                   disabled={!form.instagram.trim() || fetchingIG}
-                  title="جلب الاسم من انستغرام"
+                  title={t.customers.dialog.fetchNameTitle}
                   className="shrink-0 h-10"
                 >
                   {fetchingIG ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    "جلب الاسم"
+                    t.customers.dialog.fetchName
                   )}
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">الهاتف</Label>
+              <Label htmlFor="phone">{t.customers.dialog.phoneLabel}</Label>
               <Input
                 id="phone"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="رقم الهاتف"
+                placeholder={t.customers.dialog.phonePlaceholder}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">المدينة</Label>
+                <Label htmlFor="city">{t.customers.dialog.cityLabel}</Label>
                 <Select
                   id="city"
                   value={form.city}
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
                 >
-                  <option value="">اختر المدينة</option>
+                  <option value="">{t.customers.dialog.cityPlaceholder}</option>
                   {IRAQI_CITIES.map((city) => (
                     <option key={city} value={city}>{city}</option>
                   ))}
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="area">المنطقة</Label>
+                <Label htmlFor="area">{t.customers.dialog.areaLabel}</Label>
                 <Input
                   id="area"
                   value={form.area}
                   onChange={(e) => setForm({ ...form, area: e.target.value })}
-                  placeholder="المنطقة"
+                  placeholder={t.customers.dialog.areaPlaceholder}
                 />
               </div>
             </div>
@@ -602,10 +593,14 @@ export default function CustomersPage() {
                 variant="outline"
                 onClick={() => setDialogOpen(false)}
               >
-                إلغاء
+                {t.customers.dialog.cancel}
               </Button>
               <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
-                {saving ? "جاري الحفظ..." : editingId ? "تحديث" : "إنشاء"}
+                {saving
+                  ? t.customers.dialog.saving
+                  : editingId
+                  ? t.customers.dialog.update
+                  : t.customers.dialog.create}
               </Button>
             </div>
           </div>
@@ -617,16 +612,17 @@ export default function CustomersPage() {
         <DialogContent>
           <DialogClose onClose={() => setDeleteDialogOpen(false)} />
           <DialogHeader>
-            <DialogTitle>حذف العميل</DialogTitle>
+            <DialogTitle>{t.customers.deleteDialog.title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <p>
-              هل أنت متأكد من حذف{" "}
-              <strong>{deletingCustomer?.name}</strong>؟ لا يمكن التراجع عن هذا الإجراء.
+              {deletingCustomer
+                ? t.customers.deleteDialog.confirm(deletingCustomer.name)
+                : ""}
             </p>
             {deletingCustomer && deletingCustomer.totalOrders > 0 && (
               <p className="text-sm text-destructive">
-                هذا العميل لديه {deletingCustomer.totalOrders} طلب ولا يمكن حذفه.
+                {t.customers.deleteDialog.hasOrders(deletingCustomer.totalOrders)}
               </p>
             )}
             <div className="flex justify-end gap-2">
@@ -634,14 +630,14 @@ export default function CustomersPage() {
                 variant="outline"
                 onClick={() => setDeleteDialogOpen(false)}
               >
-                إلغاء
+                {t.customers.deleteDialog.cancel}
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
               >
-                {deleting ? "جاري الحذف..." : "حذف"}
+                {deleting ? t.customers.deleteDialog.deleting : t.customers.deleteDialog.delete}
               </Button>
             </div>
           </div>
