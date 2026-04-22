@@ -7,12 +7,21 @@ import { Sun, Moon, Search, ChevronLeft, Plus } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/lib/i18n";
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return "صباح الخير ☀️";
+  if (h >= 12 && h < 18) return "مساء الخير 🌤️";
+  if (h >= 18 && h < 24) return "مساء النور 🌙";
+  return "وقت متأخر 🌙";
+}
+
 export function AppNavbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { user } = useAuthStore();
   const t = useT();
   const [mounted, setMounted] = useState(false);
+  const [greeting, setGreeting] = useState("");
 
   function getPageTitle(p: string): string {
     if (t.pageTitles[p]) return t.pageTitles[p];
@@ -24,7 +33,10 @@ export function AppNavbar() {
 
   const title = getPageTitle(pathname);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    setGreeting(getGreeting());
+  }, []);
 
   const isDark = theme === "dark";
   const router = useRouter();
@@ -46,30 +58,44 @@ export function AppNavbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-40 flex flex-col bg-card/40 backdrop-blur-3xl border-b border-border/30"
+      className="fixed top-0 left-0 right-0 z-40 flex flex-col
+        bg-transparent backdrop-blur-md border-b border-white/8 shadow-[0_1px_16px_rgba(0,0,0,0.07)]
+        sm:bg-card/40 sm:backdrop-blur-3xl sm:border-border/30 sm:shadow-none"
       style={{ height: "56px" }}
     >
       {/* Single Row: Logo + Breadcrumb + Search + Controls */}
       <div className="flex items-center justify-between px-4 sm:px-7 h-14 min-h-[56px]">
         {/* Right side: Brand + Breadcrumb */}
         <div className="flex items-center gap-2.5">
+          {/* Mobile: logo stacked with greeting / Desktop: logo only */}
           <a
             href="/"
-            className="flex items-center gap-0 group select-none"
+            className="flex flex-col items-start sm:flex-row sm:items-center gap-0 group select-none"
             title="الرئيسية"
           >
-            <span
-              className="transition-opacity duration-200 group-hover:opacity-75"
-              style={{ fontSize: "17px", fontWeight: 500, letterSpacing: "0.16em", color: "var(--foreground)" }}
-            >
-              trendy
-            </span>
-            <span
-              className="transition-opacity duration-200 group-hover:opacity-75"
-              style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.16em", color: "#c9a84c" }}
-            >
-              &nbsp;store
-            </span>
+            <div className="flex items-center">
+              <span
+                className="transition-opacity duration-200 group-hover:opacity-75"
+                style={{ fontSize: "17px", fontWeight: 500, letterSpacing: "0.16em", color: "var(--foreground)" }}
+              >
+                trendy
+              </span>
+              <span
+                className="transition-opacity duration-200 group-hover:opacity-75"
+                style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.16em", color: "#c9a84c" }}
+              >
+                &nbsp;store
+              </span>
+            </div>
+            {/* Greeting — mobile only */}
+            {greeting && (
+              <span
+                className="sm:hidden text-[10px] font-medium leading-none -mt-0.5"
+                style={{ color: "#c9a84c", opacity: 0.65 }}
+              >
+                {greeting}
+              </span>
+            )}
           </a>
           <div className="hidden sm:flex items-center gap-1.5">
             <ChevronLeft size={13} strokeWidth={1.5} className="text-[var(--muted)] opacity-40" />
