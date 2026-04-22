@@ -494,6 +494,20 @@ export default function OrdersPage() {
   const [productItems, setProductItems] = useState<ProductItem[]>([createEmptyItem()]);
   const [saving, setSaving] = useState(false);
 
+  // Filter dropdown
+  const [filterDropOpen, setFilterDropOpen] = useState(false);
+  const filterDropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!filterDropOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (filterDropRef.current && !filterDropRef.current.contains(e.target as Node))
+        setFilterDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [filterDropOpen]);
+
   // Status dropdown
   const [statusDropId, setStatusDropId] = useState<string | null>(null);
   const statusDropRef = useRef<HTMLDivElement>(null);
@@ -1172,19 +1186,42 @@ export default function OrdersPage() {
       {/* Page header */}
       <h1 className="text-2xl font-bold tracking-tight">{t.orders.title}</h1>
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {STATUS_TABS.map((tab) => (
-          <Button
-            key={tab.value}
-            variant={activeTab === tab.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab(tab.value)}
-            className="transition-all duration-200"
+      {/* Filter Dropdown */}
+      <div className="relative inline-block" ref={filterDropRef}>
+        <button
+          type="button"
+          onClick={() => setFilterDropOpen((prev) => !prev)}
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm"
+        >
+          <span>{STATUS_TABS.find((t) => t.value === activeTab)?.label ?? STATUS_TABS[0].label}</span>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${filterDropOpen ? "rotate-180" : ""}`} />
+        </button>
+        {filterDropOpen && (
+          <div
+            className="absolute z-50 top-full mt-1 start-0 rounded-xl shadow-2xl overflow-hidden min-w-[10rem] py-1"
+            style={{ backgroundColor: "#1e1e2e", border: "1px solid #333" }}
           >
-            {tab.label}
-          </Button>
-        ))}
+            {STATUS_TABS.map((tab) => {
+              const isActive = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => { setActiveTab(tab.value); setFilterDropOpen(false); }}
+                  className="w-full text-start px-4 py-2 text-sm transition-colors hover:brightness-125"
+                  style={{
+                    backgroundColor: isActive ? "rgba(139,92,246,0.15)" : "transparent",
+                    color: isActive ? "#a78bfa" : "#e5e7eb",
+                    borderRight: isActive ? "3px solid #8b5cf6" : "3px solid transparent",
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Search */}
