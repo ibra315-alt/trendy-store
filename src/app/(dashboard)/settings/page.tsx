@@ -214,7 +214,7 @@ export default function SettingsPage() {
       const text = await file.text();
       const rows = parseCSV(text);
       if (rows.length === 0) {
-        setImportMsg({ ok: false, text: "الملف فارغ أو تنسيقه غير صحيح" });
+        setImportMsg({ ok: false, text: t.settings.system.importEmptyFile });
         return;
       }
       const customers = rows.map((row) => ({
@@ -231,9 +231,9 @@ export default function SettingsPage() {
       });
       if (!res.ok) throw new Error("server error");
       const { imported, skipped } = await res.json();
-      setImportMsg({ ok: true, text: `تم استيراد ${imported} عميل، تم تخطي ${skipped} مكرر` });
+      setImportMsg({ ok: true, text: t.settings.system.importSuccess(imported, skipped) });
     } catch {
-      setImportMsg({ ok: false, text: "فشل الاستيراد. تحقق من تنسيق الملف وحاول مجدداً." });
+      setImportMsg({ ok: false, text: t.settings.system.importError });
     } finally {
       setImporting(false);
     }
@@ -322,7 +322,7 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={handleLogout}
-                  title="تسجيل الخروج"
+                  title={t.settings.system.logoutTitle}
                   className="flex items-center justify-center w-8 h-8 rounded-xl text-[var(--muted)] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
                 >
                   <LogOut size={16} strokeWidth={1.8} />
@@ -365,7 +365,7 @@ export default function SettingsPage() {
                   <button
                     key={cat.key}
                     onClick={() => setActiveCategory(cat.key)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-right transition-all duration-200 cursor-pointer relative group ${
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-start transition-all duration-200 cursor-pointer relative group ${
                       isActive
                         ? "bg-[var(--navy)]/8 text-[var(--navy)]"
                         : "text-[var(--muted)] hover:bg-[var(--background)]/80 hover:text-[var(--foreground)]"
@@ -420,7 +420,7 @@ export default function SettingsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               type="search"
-              placeholder="بحث في الإعدادات..."
+              placeholder={t.settings.searchPlaceholder}
               className="w-full pr-10 pl-4 py-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--navy)]/40 transition-all"
               style={{ boxShadow: "var(--shadow-xs)" }}
             />
@@ -437,7 +437,7 @@ export default function SettingsPage() {
                     setShowMobileContent(true);
                     setSearchQuery("");
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-4 bg-[var(--surface)] rounded-2xl text-right transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                  className="w-full flex items-center gap-3 px-4 py-4 bg-[var(--surface)] rounded-2xl text-start transition-all duration-200 cursor-pointer active:scale-[0.98]"
                   style={{ boxShadow: "var(--shadow-sm)" }}
                 >
                   <div className="w-10 h-10 rounded-xl bg-[var(--navy)]/8 flex items-center justify-center shrink-0">
