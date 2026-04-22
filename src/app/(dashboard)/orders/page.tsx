@@ -1026,13 +1026,16 @@ export default function OrdersPage() {
           <div className="flex flex-col gap-1.5 flex-1">
             {/* رابط */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end">رابط</Label>
+              <div className="flex items-center gap-1 shrink-0 w-14 justify-end">
+                <span className="text-[11px] text-[var(--muted)] opacity-50">رابط</span>
+                <Link2 size={14} className="text-[var(--muted)] shrink-0" />
+              </div>
               <div className="relative flex-1">
                 <Input
                   value={item.productLink}
                   onChange={(e) => updateProductItem(item.id, { productLink: e.target.value, fetchedImages: [], images: "", selectedImageIdx: 0 })}
                   dir="ltr"
-                  className="h-8 text-xs text-left pe-7 ps-7"
+                  className="h-8 text-[13px] text-left pe-7 ps-7"
                 />
                 {isFetching
                   ? <Loader2 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />
@@ -1051,21 +1054,27 @@ export default function OrdersPage() {
 
             {/* اللون */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end">اللون</Label>
+              <div className="flex items-center gap-1 shrink-0 w-14 justify-end">
+                <span className="text-[11px] text-[var(--muted)] opacity-50">لون</span>
+                <span className="text-[14px] leading-none text-[var(--muted)]">●</span>
+              </div>
               <Input
                 value={item.color}
                 onChange={(e) => updateProductItem(item.id, { color: e.target.value })}
-                className="h-8 text-xs flex-1"
+                className="h-8 text-[13px] flex-1"
               />
             </div>
 
             {/* النوع */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end">النوع</Label>
+              <div className="flex items-center gap-1 shrink-0 w-14 justify-end">
+                <span className="text-[11px] text-[var(--muted)] opacity-50">نوع</span>
+                <span className="text-[14px] leading-none text-[var(--muted)]">◈</span>
+              </div>
               <Select
                 value={item.productType}
                 onChange={(e) => updateProductItem(item.id, { productType: e.target.value })}
-                className="h-8 text-xs flex-1"
+                className="h-8 text-[13px] flex-1"
               >
                 {PRODUCT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -1075,7 +1084,10 @@ export default function OrdersPage() {
 
             {/* المقاس */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end">المقاس</Label>
+              <div className="flex items-center gap-1 shrink-0 w-14 justify-end">
+                <span className="text-[11px] text-[var(--muted)] opacity-50">مقاس</span>
+                <span className="text-[14px] leading-none text-[var(--muted)]">⊟</span>
+              </div>
               <div className="flex-1 flex items-center gap-1 flex-wrap">
                 {item.availableSizes.map((s, si) => (
                   <button
@@ -1094,20 +1106,23 @@ export default function OrdersPage() {
                 <Input
                   value={item.size}
                   onChange={(e) => updateProductItem(item.id, { size: e.target.value })}
-                  className="h-8 text-xs flex-1 min-w-[3rem]"
+                  className="h-8 text-[13px] flex-1 min-w-[3rem]"
                 />
               </div>
             </div>
 
             {/* شراء ليرة */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end">شراء ₺</Label>
+              <div className="flex items-center gap-1 shrink-0 w-14 justify-end">
+                <span className="text-[11px] text-[var(--muted)] opacity-50">شراء</span>
+                <span className="text-[14px] leading-none font-mono text-[var(--muted)]">₺</span>
+              </div>
               <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={item.purchaseCost}
-                className="h-8 text-xs flex-1"
+                className="h-8 text-[13px] flex-1"
                 onChange={(e) => {
                   const val = e.target.value;
                   const lira = parseFloat(val) || 0;
@@ -1122,13 +1137,16 @@ export default function OrdersPage() {
 
             {/* بيع دينار */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0 w-14 text-end">بيع د.ع</Label>
+              <div className="flex items-center gap-1 shrink-0 w-14 justify-end">
+                <span className="text-[11px] text-[var(--muted)] opacity-50">بيع</span>
+                <span className="text-[14px] leading-none font-mono text-[var(--muted)]">IQ</span>
+              </div>
               <Input
                 type="number"
                 step="1"
                 min="0"
                 value={item.sellingPrice}
-                className="h-8 text-xs flex-1"
+                className="h-8 text-[13px] flex-1"
                 onChange={(e) => updateProductItem(item.id, { sellingPrice: e.target.value })}
               />
             </div>
