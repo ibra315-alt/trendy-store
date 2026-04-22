@@ -1560,28 +1560,48 @@ export default function OrdersPage() {
                         </div>
                       </div>
 
-                      {/* Product type · color · size */}
-                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1">
-                        <span className="text-xs text-[var(--muted)]">
-                          {PRODUCT_TYPE_LABELS[order.productType] || order.productType}
-                        </span>
+                      {/* Product details */}
+                      <div className="mt-1.5 space-y-[5px]">
+                        <div className="flex items-center gap-1.5">
+                          <Package size={14} className="text-[var(--muted)] shrink-0" />
+                          <span className="text-[11px] text-[var(--muted)] opacity-50">نوع</span>
+                          <span className="text-[13px] text-[var(--foreground)]">{PRODUCT_TYPE_LABELS[order.productType] || order.productType}</span>
+                        </div>
                         {order.color && (
-                          <span className="text-xs text-[var(--muted)]">· {order.color}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="shrink-0 h-[14px] w-[14px] rounded-full border border-[var(--border)]" style={{ background: order.color }} />
+                            <span className="text-[11px] text-[var(--muted)] opacity-50">لون</span>
+                            <span className="text-[13px] text-[var(--foreground)]">{order.color}</span>
+                          </div>
                         )}
                         {order.size && (
-                          <span className="text-xs text-[var(--muted)]">· {order.size}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none text-[var(--muted)]">SZ</span>
+                            <span className="text-[11px] text-[var(--muted)] opacity-50">مقاس</span>
+                            <span className="text-[13px] text-[var(--foreground)]">{order.size}</span>
+                          </div>
                         )}
+                        {order.productLink && (
+                          <div className="flex items-center gap-1.5">
+                            <ExternalLink size={14} className="text-[var(--muted)] shrink-0" />
+                            <span className="text-[11px] text-[var(--muted)] opacity-50">رابط</span>
+                            <a href={order.productLink} target="_blank" rel="noopener noreferrer" className="text-[13px] text-blue-500 hover:underline">فتح</a>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none text-[var(--muted)]">₺</span>
+                          <span className="text-[11px] text-[var(--muted)] opacity-50">شراء</span>
+                          <span className="text-[13px] text-[var(--foreground)]">{formatTRY(order.purchaseCost)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none" style={{ color: "#c9a84c" }}>IQ</span>
+                          <span className="text-[11px] text-[var(--muted)] opacity-50">بيع</span>
+                          <span className="text-[13px]" style={{ color: "#c9a84c" }}>{formatIQD(order.sellingPrice)}</span>
+                        </div>
                       </div>
-
-                      {/* Price + date */}
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold" style={{ color: "#c9a84c" }}>
-                          {formatIQD(order.sellingPrice)}
-                        </span>
-                        <span className="text-xs text-[var(--muted)]">
-                          {format(new Date(order.createdAt), "dd/MM/yyyy")}
-                        </span>
-                      </div>
+                      <span className="mt-1 block text-[11px] text-[var(--muted)] opacity-50">
+                        {format(new Date(order.createdAt), "dd/MM/yyyy")}
+                      </span>
                     </div>
                   </div>
 
