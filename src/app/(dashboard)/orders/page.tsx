@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   Plus,
-  Search,
   Pencil,
   Trash2,
   MessageCircle,
