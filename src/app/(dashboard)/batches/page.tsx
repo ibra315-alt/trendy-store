@@ -678,106 +678,132 @@ export default function BatchesPage() {
 
       {/* Batches Grid */}
       {batches.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">{t.batches.empty}</p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+          <Package className="h-10 w-10 text-[var(--muted)] mb-3 opacity-40" />
+          <p className="text-sm text-[var(--muted)]">{t.batches.empty}</p>
+        </div>
       ) : (
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {batches.map((batch) => {
             const bought = boughtCount(batch);
             const total = batch._count.orders;
+            const pct = total > 0 ? Math.round((bought / total) * 100) : 0;
             const totalPurchaseTRY = batch.orders.reduce((s, o) => s + o.purchaseCost, 0);
             const totalSellingIQD  = batch.orders.reduce((s, o) => s + o.sellingPrice, 0);
+            const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+              open:            { bg: "rgba(59,130,246,0.15)",  text: "#60a5fa", border: "rgba(59,130,246,0.3)" },
+              shipped:         { bg: "rgba(249,115,22,0.15)",  text: "#fb923c", border: "rgba(249,115,22,0.3)" },
+              in_distribution: { bg: "rgba(168,85,247,0.15)",  text: "#c084fc", border: "rgba(168,85,247,0.3)" },
+              completed:       { bg: "rgba(34,197,94,0.15)",   text: "#4ade80", border: "rgba(34,197,94,0.3)" },
+            };
+            const sc = statusColors[batch.status] ?? statusColors.open;
+            const barColor = pct === 100 ? "#22c55e" : pct > 50 ? "#3b82f6" : "#f97316";
 
             return (
-              <Card key={batch.id} className="flex flex-col">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-lg">{batch.name}</CardTitle>
-                    {batchStatusBadge(batch.status, t)}
+              <div
+                key={batch.id}
+                className="rounded-2xl overflow-hidden flex flex-col"
+                style={{ border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+              >
+                {/* ── Dark header ── */}
+                <div
+                  className="px-4 py-3 flex items-center justify-between gap-2"
+                  style={{ background: "linear-gradient(135deg,#0f172a 0%,#1a2e4a 100%)" }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-white font-bold text-sm leading-tight truncate">{batch.name}</p>
+                    <p className="text-slate-400 text-[11px] mt-0.5 font-mono">
+                      {format(new Date(batch.openDate), "dd/MM/yyyy")}
+                      {batch.closeDate && (
+                        <span> → {format(new Date(batch.closeDate), "dd/MM/yyyy")}</span>
+                      )}
+                    </p>
                   </div>
-                </CardHeader>
+                  <span
+                    className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}
+                  >
+                    {batchStatusBadge(batch.status, t).props.children}
+                  </span>
+                </div>
 
-                <CardContent className="flex-1 space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-muted-foreground">{t.batches.card.openDate}</span>{" "}
-                      {format(new Date(batch.openDate), "MMM d, yyyy")}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">{t.batches.card.closeDate}</span>{" "}
-                      {batch.closeDate ? format(new Date(batch.closeDate), "MMM d, yyyy") : "---"}
-                    </div>
+                {/* ── Body ── */}
+                <div className="bg-[var(--surface)] px-4 py-3 space-y-3 flex-1">
+                  {/* Stats chips */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">
+                      <Package size={10} />
+                      <span className="font-semibold text-[var(--foreground)]">{total}</span>
+                      {t.batches.card.orders.replace(":", "")}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">
+                      {t.batches.card.shipping.replace(":", "")}
+                      <span className="font-semibold text-[var(--foreground)]">{formatUSD(batch.shippingCost)}</span>
+                    </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-muted-foreground">{t.batches.card.shipping}</span>{" "}
-                      {formatUSD(batch.shippingCost)}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">{t.batches.card.orders}</span> {total}
-                    </div>
-                  </div>
-
+                  {/* Progress bar */}
                   <div>
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                      <span>{t.batches.card.progress}</span>
-                      <span>{t.batches.card.progressDetail(bought, total)}</span>
+                    <div className="flex justify-between text-[11px] mb-1.5">
+                      <span className="text-[var(--muted)]">{t.batches.card.progress}</span>
+                      <span className="font-semibold" style={{ color: barColor }}>
+                        {t.batches.card.progressDetail(bought, total)} · {pct}%
+                      </span>
                     </div>
-                    <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
                       <div
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: total > 0 ? `${(bought / total) * 100}%` : "0%" }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: barColor }}
                       />
                     </div>
                   </div>
 
-                  <div className="rounded-md border p-3 space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t.batches.card.purchaseCosts}</span>
-                      <span className="font-medium">{formatTRY(totalPurchaseTRY)}</span>
+                  {/* Financial row */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+                      <p className="text-[10px] text-[var(--muted)] mb-0.5">{t.batches.card.purchaseCosts}</p>
+                      <p className="text-xs font-bold text-[var(--foreground)] font-mono">{formatTRY(totalPurchaseTRY)}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t.batches.card.sellingCosts}</span>
-                      <span className="font-medium">{formatIQD(totalSellingIQD)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t.batches.card.shippingCost}</span>
-                      <span className="font-medium">{formatUSD(batch.shippingCost)}</span>
+                    <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+                      <p className="text-[10px] text-[var(--muted)] mb-0.5">{t.batches.card.sellingCosts}</p>
+                      <p className="text-xs font-bold font-mono" style={{ color: "#c9a84c" }}>{formatIQD(totalSellingIQD)}</p>
                     </div>
                   </div>
-                </CardContent>
+                </div>
 
-                <CardFooter className="pt-3 border-t border-[var(--border)]/40 flex items-center gap-2">
+                {/* ── Footer actions ── */}
+                <div
+                  className="flex items-center gap-1.5 px-3 py-2.5"
+                  style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}
+                >
                   <button
                     onClick={() => setViewingBatch(batch)}
-                    className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl text-sm font-medium bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors duration-150 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/50"
+                    className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-xl text-xs font-semibold transition-all hover:brightness-110"
+                    style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.25)" }}
                   >
-                    <Eye size={15} strokeWidth={1.8} />
+                    <Eye size={13} />
                     {t.batches.card.viewOrders}
                   </button>
                   <button
                     onClick={() => openEdit(batch)}
-                    className="flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl text-sm font-medium bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 transition-colors duration-150 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/50"
+                    title={t.batches.card.edit}
+                    className="flex items-center justify-center h-8 w-8 rounded-xl transition-all hover:brightness-110"
+                    style={{ background: "rgba(234,179,8,0.12)", color: "#ca8a04", border: "1px solid rgba(234,179,8,0.25)" }}
                   >
-                    <Pencil size={15} strokeWidth={1.8} />
-                    {t.batches.card.edit}
+                    <Pencil size={13} />
                   </button>
                   {isAdmin() && (
                     <button
                       onClick={() => handleDelete(batch.id)}
-                      className="flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl text-sm font-medium bg-red-50 text-red-500 border border-red-200 hover:bg-red-100 transition-colors duration-150 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/50"
+                      title={t.batches.card.delete}
+                      className="flex items-center justify-center h-8 w-8 rounded-xl transition-all hover:brightness-110"
+                      style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
                     >
-                      <Trash2 size={15} strokeWidth={1.8} />
-                      {t.batches.card.delete}
+                      <Trash2 size={13} />
                     </button>
                   )}
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>
