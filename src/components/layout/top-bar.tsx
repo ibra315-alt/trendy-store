@@ -45,7 +45,8 @@ export function AppNavbar() {
   const [greeting, setGreeting] = useState("");
   const [filterDropOpen, setFilterDropOpen] = useState(false);
   const filterDropRef = useRef<HTMLDivElement>(null);
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const { statusFilter, counts, setStatusFilter } = useBatchFilterStore();
@@ -271,29 +272,45 @@ export function AppNavbar() {
             )}
           </div>
 
-          {/* Search input */}
+          {/* Search — icon button when closed, expands on click */}
           <div className="relative flex items-center">
-            <Search size={14} className="absolute end-2.5 text-[var(--muted)] pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              placeholder={t.orders.searchPlaceholder}
-              dir="rtl"
-              className="h-9 pe-8 ps-3 text-xs rounded-xl outline-none transition-all"
-              style={{
-                background: "var(--surface)",
-                border: `1px solid ${searchFocused ? "var(--accent)" : "var(--border)"}`,
-                color: "var(--foreground)",
-                width: searchFocused || search ? "160px" : "120px",
-                transition: "width 0.2s, border-color 0.15s",
-              }}
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute start-2 text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer">
-                <X size={12} />
+            {searchOpen ? (
+              <>
+                <Search size={13} className="absolute end-2.5 text-[var(--muted)] pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onBlur={() => { if (!search) setSearchOpen(false); }}
+                  dir="rtl"
+                  autoFocus
+                  className="h-9 pe-8 ps-3 text-xs rounded-xl outline-none"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--accent)",
+                    color: "var(--foreground)",
+                    width: "160px",
+                    transition: "width 0.2s",
+                  }}
+                />
+                {search && (
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setSearch(""); setSearchOpen(false); }}
+                    className="absolute start-2 text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-full cursor-pointer transition-all hover:brightness-110"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
+              >
+                <Search size={15} strokeWidth={1.8} />
               </button>
             )}
           </div>
