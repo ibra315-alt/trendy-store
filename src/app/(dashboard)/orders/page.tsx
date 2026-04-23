@@ -1465,174 +1465,271 @@ export default function OrdersPage() {
           <div className="space-y-3 pb-32">
             {orders.map((order, idx) => {
               const imgs = order.images ? (() => { try { return JSON.parse(order.images!); } catch { return []; } })() : [];
+              const itemCount = getOrderItemCount(order);
+              const subItems = parseSubItems(order.items);
+              const isExpanded = expandedIds.has(order.id);
+
               return (
                 <div
                   key={order.id}
-                  className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-3.5 space-y-3 animate-fade-in-up"
+                  className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden animate-fade-in-up"
                   style={{ animationDelay: `${idx * 30}ms` }}
                 >
-                  {/* Image + info */}
-                  <div className="flex gap-3">
-                    <div className="shrink-0 self-start">
-                      {imgs.length > 0 ? (
-                        <button type="button" onClick={() => setPreviewImg(imgs[0])}>
-                          <img
-                            src={imgs[0]}
-                            alt=""
-                            className="h-16 w-16 rounded-xl object-cover border border-[var(--border)] cursor-zoom-in"
-                          />
-                        </button>
-                      ) : (
-                        <div className="h-16 w-16 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-[var(--muted)]" />
+                  {/* ── Main card body ── */}
+                  <div className="p-3.5 space-y-3">
+                    <div className="flex gap-3">
+                      {/* Image */}
+                      <div className="shrink-0 self-start">
+                        {imgs.length > 0 ? (
+                          <button type="button" onClick={() => setPreviewImg(imgs[0])}>
+                            <img
+                              src={imgs[0]}
+                              alt=""
+                              className="h-16 w-16 rounded-xl object-cover border border-[var(--border)] cursor-zoom-in"
+                            />
+                          </button>
+                        ) : (
+                          <div className="h-16 w-16 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center">
+                            <ImageIcon className="h-5 w-5 text-[var(--muted)]" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Name + status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm leading-snug truncate text-[var(--foreground)]">
+                            {order.customer?.name || "-"}
+                          </p>
+                          <div
+                            className="relative shrink-0"
+                            ref={statusDropId === order.id ? statusDropRef : undefined}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setStatusDropId(statusDropId === order.id ? null : order.id)}
+                            >
+                              <Badge
+                                variant={statusBadgeVariant(order.status) as "default" | "secondary" | "destructive" | "outline" | "success" | "warning"}
+                                className="hover:opacity-80 transition-opacity"
+                              >
+                                {prettyStatus(order.status)}
+                              </Badge>
+                            </button>
+                            {statusDropId === order.id && (
+                              <div
+                                className="absolute z-50 top-full mt-1 end-0 rounded-lg shadow-xl overflow-hidden min-w-[9rem]"
+                                style={{ backgroundColor: "#1e1e2e", border: "1px solid #333" }}
+                              >
+                                {STATUS_OPTIONS.map((s) => {
+                                  const colors: Record<string, string> = {
+                                    new: "#3b82f6", in_progress: "#eab308",
+                                    bought: "#a855f7", shipped: "#f97316", delivered: "#22c55e",
+                                  };
+                                  const active = order.status === s.value;
+                                  return (
+                                    <button
+                                      key={s.value}
+                                      type="button"
+                                      onClick={() => updateOrderStatus(order.id, order.status, s.value)}
+                                      style={{
+                                        backgroundColor: active ? colors[s.value] + "33" : "transparent",
+                                        color: colors[s.value] ?? "#e5e7eb",
+                                        borderRight: active ? `3px solid ${colors[s.value]}` : "3px solid transparent",
+                                      }}
+                                      className="w-full text-start px-3 py-2 text-sm font-medium transition-colors hover:brightness-125"
+                                    >
+                                      {s.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
+
+                        {/* Product details */}
+                        <div className="mt-1.5 space-y-[5px]">
+                          <div className="flex items-center gap-1.5">
+                            <Package size={14} className="text-[var(--muted)] shrink-0" />
+                            <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.type}</span>
+                            <span className="text-[13px] text-[var(--foreground)]">{PRODUCT_TYPE_LABELS[order.productType] || order.productType}</span>
+                          </div>
+                          {order.color && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="shrink-0 h-[14px] w-[14px] rounded-full border border-[var(--border)]" style={{ background: order.color }} />
+                              <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.color}</span>
+                              <span className="text-[13px] text-[var(--foreground)]">{order.color}</span>
+                            </div>
+                          )}
+                          {order.size && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none text-[var(--muted)]">SZ</span>
+                              <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.size}</span>
+                              <span className="text-[13px] text-[var(--foreground)]">{order.size}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5">
+                            <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none text-[var(--muted)]">₺</span>
+                            <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.buy}</span>
+                            <span className="text-[13px] text-[var(--foreground)]">{formatTRY(order.purchaseCost)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none" style={{ color: "#c9a84c" }}>IQ</span>
+                            <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.sell}</span>
+                            <span className="text-[13px]" style={{ color: "#c9a84c" }}>{formatIQD(order.sellingPrice)}</span>
+                          </div>
+                        </div>
+                        <span className="mt-1 block text-[11px] text-[var(--muted)] opacity-50">
+                          {format(new Date(order.createdAt), "dd/MM/yyyy")}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      {/* Name + tappable status badge */}
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-sm leading-snug truncate text-[var(--foreground)]">
-                          {order.customer?.name || "-"}
-                        </p>
-                        <div
-                          className="relative shrink-0"
-                          ref={statusDropId === order.id ? statusDropRef : undefined}
+                    {/* Expand toggle — only if multiple items */}
+                    {itemCount > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(order.id)}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                        style={{
+                          background: isExpanded ? "rgba(139,92,246,0.12)" : "var(--surface-secondary)",
+                          color: isExpanded ? "#a78bfa" : "var(--muted)",
+                          border: isExpanded ? "1px solid rgba(139,92,246,0.3)" : "1px solid var(--border)",
+                        }}
+                      >
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                        {isExpanded
+                          ? "إخفاء المنتجات الإضافية"
+                          : `+${itemCount - 1} منتج إضافي — اضغط للعرض`}
+                      </button>
+                    )}
+
+                    {/* Actions row */}
+                    <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]/40">
+                      <div className="flex items-center gap-0.5">
+                        <a
+                          href={buildWhatsAppUrl(order)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
+                          title={t.orders.tooltips.whatsapp}
                         >
+                          <MessageCircle className="h-4 w-4 text-green-600" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(order)}
+                          className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
+                          title={t.orders.tooltips.edit}
+                        >
+                          <Pencil className="h-4 w-4 text-[var(--muted)]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openInvoice(order, invoiceTemplate, storeNameForInvoice)}
+                          className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
+                          title={t.orders.tooltips.invoice}
+                        >
+                          <FileText className="h-4 w-4 text-[var(--muted)]" />
+                        </button>
+                        {isAdmin() && (
                           <button
                             type="button"
-                            onClick={() => setStatusDropId(statusDropId === order.id ? null : order.id)}
+                            onClick={() => handleDelete(order)}
+                            className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-red-500/10 transition-colors"
+                            title={t.orders.tooltips.delete}
                           >
-                            <Badge
-                              variant={statusBadgeVariant(order.status) as "default" | "secondary" | "destructive" | "outline" | "success" | "warning"}
-                              className="hover:opacity-80 transition-opacity"
-                            >
-                              {prettyStatus(order.status)}
-                            </Badge>
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </button>
-                          {statusDropId === order.id && (
-                            <div
-                              className="absolute z-50 top-full mt-1 end-0 rounded-lg shadow-xl overflow-hidden min-w-[9rem]"
-                              style={{ backgroundColor: "#1e1e2e", border: "1px solid #333" }}
-                            >
-                              {STATUS_OPTIONS.map((s) => {
-                                const colors: Record<string, string> = {
-                                  new:         "#3b82f6",
-                                  in_progress: "#eab308",
-                                  bought:      "#a855f7",
-                                  shipped:     "#f97316",
-                                  delivered:   "#22c55e",
-                                };
-                                const active = order.status === s.value;
-                                return (
-                                  <button
-                                    key={s.value}
-                                    type="button"
-                                    onClick={() => updateOrderStatus(order.id, order.status, s.value)}
-                                    style={{
-                                      backgroundColor: active ? colors[s.value] + "33" : "transparent",
-                                      color: colors[s.value] ?? "#e5e7eb",
-                                      borderRight: active ? `3px solid ${colors[s.value]}` : "3px solid transparent",
-                                    }}
-                                    className="w-full text-start px-3 py-2 text-sm font-medium transition-colors hover:brightness-125"
-                                  >
-                                    {s.label}
-                                  </button>
-                                );
-                              })}
+                        )}
+                      </div>
+                      {order.productLink && (
+                        <a
+                          href={order.productLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-secondary)] transition-colors text-[var(--foreground)]"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {t.orders.openLink}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Expanded sub-items ── */}
+                  {isExpanded && subItems.map((sub, si) => {
+                    const subImg = sub.images?.[0];
+                    return (
+                      <div
+                        key={`${order.id}-m-sub-${si}`}
+                        className="border-t border-[var(--border)]/60 px-3.5 py-3 flex gap-3 items-start"
+                        style={{ background: "var(--surface-secondary)" }}
+                      >
+                        {/* Sub-item image */}
+                        <div className="shrink-0">
+                          {subImg ? (
+                            <button type="button" onClick={() => setPreviewImg(subImg)}>
+                              <img
+                                src={subImg}
+                                alt=""
+                                className="h-14 w-14 rounded-xl object-cover border border-[var(--border)] cursor-zoom-in"
+                              />
+                            </button>
+                          ) : (
+                            <div className="h-14 w-14 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center">
+                              <ImageIcon className="h-4 w-4 text-[var(--muted)]" />
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      {/* Product details */}
-                      <div className="mt-1.5 space-y-[5px]">
-                        <div className="flex items-center gap-1.5">
-                          <Package size={14} className="text-[var(--muted)] shrink-0" />
-                          <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.type}</span>
-                          <span className="text-[13px] text-[var(--foreground)]">{PRODUCT_TYPE_LABELS[order.productType] || order.productType}</span>
-                        </div>
-                        {order.color && (
+                        {/* Sub-item info */}
+                        <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="shrink-0 h-[14px] w-[14px] rounded-full border border-[var(--border)]" style={{ background: order.color }} />
-                            <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.color}</span>
-                            <span className="text-[13px] text-[var(--foreground)]">{order.color}</span>
+                            <Package size={12} className="text-[var(--muted)] shrink-0" />
+                            <span className="text-[12px] font-medium text-[var(--foreground)]">
+                              {PRODUCT_TYPE_LABELS[sub.productType] || sub.productType}
+                            </span>
+                            {sub.color && (
+                              <span className="text-[11px] text-[var(--muted)]">· {sub.color}</span>
+                            )}
+                            {sub.size && (
+                              <span className="text-[11px] text-[var(--muted)]">· {sub.size}</span>
+                            )}
                           </div>
-                        )}
-                        {order.size && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none text-[var(--muted)]">SZ</span>
-                            <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.size}</span>
-                            <span className="text-[13px] text-[var(--foreground)]">{order.size}</span>
+                          {sub.productName && (
+                            <p className="text-[11px] text-[var(--muted)] truncate">{sub.productName}</p>
+                          )}
+                          <div className="flex items-center gap-3">
+                            {sub.purchaseCost && (
+                              <span className="text-[11px] text-[var(--muted)]">
+                                ₺{parseFloat(sub.purchaseCost).toLocaleString()}
+                              </span>
+                            )}
+                            {sub.sellingPrice && (
+                              <span className="text-[11px] font-semibold" style={{ color: "#c9a84c" }}>
+                                {formatIQD(parseFloat(sub.sellingPrice))}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        {order.productLink && (
-                          <div className="flex items-center gap-1.5">
-                            <ExternalLink size={14} className="text-[var(--muted)] shrink-0" />
-                            <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.link}</span>
-                            <a href={order.productLink} target="_blank" rel="noopener noreferrer" className="text-[13px] text-blue-500 hover:underline">{t.orders.openLink}</a>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none text-[var(--muted)]">₺</span>
-                          <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.buy}</span>
-                          <span className="text-[13px] text-[var(--foreground)]">{formatTRY(order.purchaseCost)}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="shrink-0 w-[14px] text-center text-[10px] font-mono leading-none" style={{ color: "#c9a84c" }}>IQ</span>
-                          <span className="text-[11px] text-[var(--muted)] opacity-50">{t.orders.cardLabels.sell}</span>
-                          <span className="text-[13px]" style={{ color: "#c9a84c" }}>{formatIQD(order.sellingPrice)}</span>
-                        </div>
-                      </div>
-                      <span className="mt-1 block text-[11px] text-[var(--muted)] opacity-50">
-                        {format(new Date(order.createdAt), "dd/MM/yyyy")}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Actions row */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-[var(--border)]/40">
-                    <div className="flex items-center gap-0.5">
-                      <a
-                        href={buildWhatsAppUrl(order)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
-                        title={t.orders.tooltips.whatsapp}
-                      >
-                        <MessageCircle className="h-4 w-4 text-green-600" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(order)}
-                        className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-[var(--surface-secondary)] transition-colors"
-                        title={t.orders.tooltips.edit}
-                      >
-                        <Pencil className="h-4 w-4 text-[var(--muted)]" />
-                      </button>
-                      {isAdmin() && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(order)}
-                          className="flex items-center justify-center h-9 w-9 rounded-xl hover:bg-red-500/10 transition-colors"
-                          title={t.orders.tooltips.delete}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </button>
-                      )}
-                    </div>
-                    {order.productLink ? (
-                      <a
-                        href={order.productLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-secondary)] transition-colors text-[var(--foreground)]"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        {t.orders.openLink}
-                      </a>
-                    ) : null}
-                  </div>
+                        {/* Sub-item link */}
+                        {sub.productLink && (
+                          <a
+                            href={sub.productLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 flex items-center justify-center h-8 w-8 rounded-lg border border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
+                            title={t.orders.openLink}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-[var(--muted)]" />
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
