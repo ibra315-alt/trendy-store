@@ -40,6 +40,7 @@ export async function PUT(req: NextRequest) {
         ...(data.usdToTry !== undefined && { usdToTry: parseFloat(data.usdToTry) }),
         ...(data.usdToIqd !== undefined && { usdToIqd: parseFloat(data.usdToIqd) }),
         ...(data.tryToIqd !== undefined && { tryToIqd: parseFloat(data.tryToIqd) }),
+        ...(data.invoiceTemplate !== undefined && { invoiceTemplate: data.invoiceTemplate || null }),
       },
     });
 

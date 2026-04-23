@@ -17,7 +17,18 @@ import {
   LogOut,
   Upload,
   Languages,
+  FileText,
+  Code2,
+  Eye,
+  RotateCcw,
 } from "lucide-react";
+import {
+  INVOICE_TEMPLATES,
+  SAMPLE_INVOICE_ORDER,
+  buildInvoiceVars,
+  renderTemplate,
+  CLASSIC_TEMPLATE,
+} from "@/lib/invoice-templates";
 import { useT } from "@/lib/i18n";
 import { useLocaleStore } from "@/store/locale";
 
@@ -28,6 +39,7 @@ interface SettingsData {
   usdToTry: number;
   usdToIqd: number;
   tryToIqd: number;
+  invoiceTemplate: string | null;
 }
 
 // ─── Phone normalization ──────────────────────────────────────
@@ -88,9 +100,10 @@ export default function SettingsPage() {
   const { locale, setLocale } = useLocaleStore();
 
   const categories = [
-    { key: "store", label: t.settings.categories.store.label, icon: Store, description: t.settings.categories.store.description },
-    { key: "financial", label: t.settings.categories.financial.label, icon: Percent, description: t.settings.categories.financial.description },
-    { key: "system", label: t.settings.categories.system.label, icon: Database, description: t.settings.categories.system.description },
+    { key: "store",     label: t.settings.categories.store.label,     icon: Store,     description: t.settings.categories.store.description },
+    { key: "financial", label: t.settings.categories.financial.label, icon: Percent,   description: t.settings.categories.financial.description },
+    { key: "invoice",   label: t.settings.categories.invoice.label,   icon: FileText,  description: t.settings.categories.invoice.description },
+    { key: "system",    label: t.settings.categories.system.label,    icon: Database,  description: t.settings.categories.system.description },
   ];
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +119,11 @@ export default function SettingsPage() {
   const [usdToTry, setUsdToTry] = useState("");
   const [usdToIqd, setUsdToIqd] = useState("");
   const [tryToIqd, setTryToIqd] = useState("");
+
+  // Invoice template
+  const [invoiceTemplate, setInvoiceTemplate] = useState(CLASSIC_TEMPLATE);
+  const [invoiceEditMode, setInvoiceEditMode] = useState(false);
+  const [invoicePreviewMode, setInvoicePreviewMode] = useState(true);
 
   // CSV import
   const [importing, setImporting] = useState(false);
@@ -126,6 +144,7 @@ export default function SettingsPage() {
           setUsdToTry(String(data.usdToTry));
           setUsdToIqd(String(data.usdToIqd));
           setTryToIqd(String(data.tryToIqd));
+          setInvoiceTemplate(data.invoiceTemplate || CLASSIC_TEMPLATE);
         }
       } catch (err) {
         console.error("Failed to fetch settings:", err);
@@ -165,6 +184,7 @@ export default function SettingsPage() {
           usdToTry: parseFloat(usdToTry),
           usdToIqd: parseFloat(usdToIqd),
           tryToIqd: parseFloat(tryToIqd),
+          invoiceTemplate,
         }),
       });
       if (res.ok) {
@@ -588,6 +608,152 @@ export default function SettingsPage() {
             </p>
           </div>
         );
+
+      case "invoice": {
+        const previewHtml = renderTemplate(
+          invoiceTemplate,
+          buildInvoiceVars(SAMPLE_INVOICE_ORDER, storeName || "Trendy Store"),
+        );
+        return (
+          <div
+            className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 space-y-5"
+            style={{ boxShadow: "var(--shadow-sm)" }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-xl bg-[var(--navy)]/10 flex items-center justify-center">
+                <FileText size={18} className="text-[var(--navy)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">{t.settings.invoice.title}</h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">{t.settings.invoice.subtitle}</p>
+              </div>
+            </div>
+
+            {/* Template selector cards */}
+            <div>
+              <p className="text-xs font-semibold text-[var(--muted)] mb-3 uppercase tracking-wide">
+                {t.settings.invoice.selectTemplate}
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {INVOICE_TEMPLATES.map((tpl) => {
+                  const isSelected = invoiceTemplate === tpl.template;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => setInvoiceTemplate(tpl.template)}
+                      className={`relative rounded-xl border-2 p-3 text-start transition-all cursor-pointer ${
+                        isSelected
+                          ? "border-[var(--navy)] bg-[var(--navy)]/5"
+                          : "border-[var(--border)] hover:border-[var(--navy)]/40 bg-[var(--background)]"
+                      }`}
+                    >
+                      {/* Visual thumbnail */}
+                      <div
+                        className="w-full h-16 rounded-lg mb-2 overflow-hidden flex items-center justify-center text-white text-xs font-bold"
+                        style={{
+                          background:
+                            tpl.id === "classic" ? "#111" :
+                            tpl.id === "modern"  ? "linear-gradient(135deg,#0f172a,#1e3a5f)" :
+                            "#f5f5f5",
+                          color: tpl.id === "minimal" ? "#555" : "#fff",
+                          border: tpl.id === "minimal" ? "1px dashed #ccc" : "none",
+                        }}
+                      >
+                        {locale === "ar" ? tpl.nameAr : tpl.nameEn}
+                      </div>
+                      <p className="text-xs font-semibold text-[var(--foreground)]">
+                        {locale === "ar" ? tpl.nameAr : tpl.nameEn}
+                      </p>
+                      <p className="text-[11px] text-[var(--muted)] mt-0.5">
+                        {locale === "ar" ? tpl.descAr : tpl.descEn}
+                      </p>
+                      {isSelected && (
+                        <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-[var(--navy)] flex items-center justify-center">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                            <path d="M2 5l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setInvoiceEditMode((v) => !v)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+              >
+                <Code2 size={13} />
+                {invoiceEditMode ? t.settings.invoice.hideHtml : t.settings.invoice.editHtml}
+              </button>
+              <button
+                type="button"
+                onClick={() => setInvoicePreviewMode((v) => !v)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+              >
+                <Eye size={13} />
+                {t.settings.invoice.preview}
+              </button>
+              <button
+                type="button"
+                onClick={() => setInvoiceTemplate(CLASSIC_TEMPLATE)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-[var(--border)] text-[var(--muted)] hover:text-destructive hover:border-destructive/50 transition-colors cursor-pointer"
+              >
+                <RotateCcw size={13} />
+                {t.settings.invoice.resetTemplate}
+              </button>
+            </div>
+
+            {/* HTML editor */}
+            {invoiceEditMode && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[var(--muted)]">{t.settings.invoice.editHtml}</p>
+                <textarea
+                  value={invoiceTemplate}
+                  onChange={(e) => setInvoiceTemplate(e.target.value)}
+                  rows={16}
+                  spellCheck={false}
+                  dir="ltr"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[#0d1117] text-[#e6edf3] p-4 text-xs font-mono resize-y outline-none focus:border-[var(--navy)]/50 transition-colors"
+                  style={{ lineHeight: 1.6 }}
+                />
+                {/* Variables reference */}
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                    {t.settings.invoice.variables}
+                  </summary>
+                  <div className="mt-2 p-3 bg-[var(--background)] rounded-lg border border-[var(--border)] font-mono text-[11px] text-[var(--muted)] leading-7 break-all" dir="ltr">
+                    {t.settings.invoice.variablesList}
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {/* Live preview */}
+            {invoicePreviewMode && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[var(--muted)]">{t.settings.invoice.preview}</p>
+                <div className="rounded-xl border border-[var(--border)] overflow-hidden" style={{ height: 520 }}>
+                  <iframe
+                    srcDoc={previewHtml}
+                    className="w-full h-full"
+                    sandbox="allow-same-origin"
+                    title="invoice preview"
+                  />
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-[var(--muted)] italic">{t.settings.invoice.saveNote}</p>
+          </div>
+        );
+      }
 
       case "system":
         return (

@@ -71,11 +71,12 @@ model Order {
 }
 
 model Settings {
-  id        String   @id @default("default")
-  storeName String   @default("Trendy Store")
-  logo      String?
-  usdToTry  Float    @default(38.0)
-  usdToIqd  Float    @default(1460.0)
-  tryToIqd  Float    @default(38.4)
-  updatedAt DateTime @updatedAt
+  id              String   @id @default("default")
+  storeName       String   @default("Trendy Store")
+  logo            String?
+  usdToTry        Float    @default(38.0)
+  usdToIqd        Float    @default(1460.0)
+  tryToIqd        Float    @default(38.4)
+  invoiceTemplate String?
+  updatedAt       DateTime @updatedAt
 }

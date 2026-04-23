@@ -45,6 +45,7 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/auth";
 import { formatIQD, formatTRY } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { buildInvoiceVars, renderTemplate, CLASSIC_TEMPLATE } from "@/lib/invoice-templates";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -270,96 +271,11 @@ function pickSingleImage(fetchedImages: string[], selectedIdx: number, fallback:
   return JSON.stringify([fallback]);
 }
 
-function openInvoice(order: Order) {
-  const finalPrice = order.sellingPrice + order.deliveryCost - order.deposit;
-  const productImages = order.images ? JSON.parse(order.images) : [];
-  const imageHtml = productImages.length > 0
-    ? `<div style="text-align:center;margin:16px 0;"><img src="${productImages[0]}" alt="صورة المنتج" style="max-width:200px;max-height:200px;border-radius:8px;border:1px solid #e0e0e0;" /></div>`
-    : "";
-
-  const html = `
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <title>فاتورة - ${order.id}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; direction: rtl; }
-    .header { text-align: center; margin-bottom: 32px; border-bottom: 3px solid #1a1a1a; padding-bottom: 16px; }
-    .header h1 { font-size: 28px; font-weight: 700; letter-spacing: 2px; }
-    .header p { color: #666; margin-top: 4px; }
-    .section { margin-bottom: 24px; }
-    .section-title { font-size: 14px; font-weight: 600; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 32px; }
-    .field { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e0e0e0; }
-    .field-label { font-weight: 500; color: #555; }
-    .field-value { font-weight: 600; text-align: left; }
-    .totals { background: #f8f8f8; border-radius: 8px; padding: 16px; margin-top: 24px; }
-    .totals .field { border-bottom-color: #ccc; }
-    .totals .total-row { font-size: 18px; color: #1a1a1a; border-bottom: none; padding-top: 12px; }
-    .footer { text-align: center; margin-top: 48px; color: #999; font-size: 12px; }
-    @media print { body { padding: 20px; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>متجر ترندي</h1>
-    <p>فاتورة</p>
-  </div>
-
-  ${imageHtml}
-
-  <div class="section">
-    <div class="section-title">معلومات الطلب</div>
-    <div class="grid">
-      <div class="field"><span class="field-label">رقم الطلب</span><span class="field-value">${order.id.slice(0, 8).toUpperCase()}</span></div>
-      <div class="field"><span class="field-label">التاريخ</span><span class="field-value">${format(new Date(order.createdAt), "dd MMM yyyy")}</span></div>
-      <div class="field"><span class="field-label">الحالة</span><span class="field-value">${prettyStatus(order.status)}</span></div>
-      <div class="field"><span class="field-label">الدفع</span><span class="field-value">${prettyStatus(order.paymentStatus)}</span></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">العميل</div>
-    <div class="grid">
-      <div class="field"><span class="field-label">الاسم</span><span class="field-value">${order.customer?.name || "-"}</span></div>
-      <div class="field"><span class="field-label">الهاتف</span><span class="field-value">${order.phone || order.customer?.phone || "-"}</span></div>
-      <div class="field"><span class="field-label">الموقع</span><span class="field-value">${[order.governorate, order.area].filter(Boolean).join("، ") || "-"}</span></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">المنتج</div>
-    <div class="grid">
-      <div class="field"><span class="field-label">النوع</span><span class="field-value">${PRODUCT_TYPE_LABELS[order.productType] || order.productType || "-"}</span></div>
-      <div class="field"><span class="field-label">الاسم</span><span class="field-value">${order.productName || "-"}</span></div>
-      <div class="field"><span class="field-label">اللون</span><span class="field-value">${order.color || "-"}</span></div>
-      <div class="field"><span class="field-label">المقاس</span><span class="field-value">${order.size || "-"}</span></div>
-    </div>
-  </div>
-
-  <div class="totals">
-    <div class="section-title">الأسعار</div>
-    <div class="field"><span class="field-label">سعر البيع</span><span class="field-value">${formatIQD(order.sellingPrice)}</span></div>
-    <div class="field"><span class="field-label">كلفة التوصيل</span><span class="field-value">${formatIQD(order.deliveryCost)}</span></div>
-    <div class="field"><span class="field-label">العربون المدفوع</span><span class="field-value">- ${formatIQD(order.deposit)}</span></div>
-    <div class="field total-row"><span class="field-label">المتبقي للدفع</span><span class="field-value">${formatIQD(finalPrice)}</span></div>
-  </div>
-
-  <div class="footer">
-    <p>شكراً لتسوقكم من متجر ترندي!</p>
-  </div>
-
-  <script>window.onload = function() { window.print(); };</script>
-</body>
-</html>`;
-
+function openInvoice(order: Order, template: string, storeName: string) {
+  const vars = buildInvoiceVars(order, storeName);
+  const html = renderTemplate(template || CLASSIC_TEMPLATE, vars);
   const w = window.open("", "_blank");
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-  }
+  if (w) { w.document.write(html); w.document.close(); }
 }
 
 function buildWhatsAppUrl(order: Order) {
@@ -465,13 +381,19 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [rates, setRates] = useState({ usdIqd: BASE_IQD, usdTry: BASE_TRY });
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [invoiceTemplate, setInvoiceTemplate] = useState(CLASSIC_TEMPLATE);
+  const [storeNameForInvoice, setStoreNameForInvoice] = useState("Trendy Store");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpand = useCallback((id: string) =>
     setExpandedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }), []);
 
   useEffect(() => {
     fetch("/api/settings").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setRates({ usdIqd: d.usdToIqd || BASE_IQD, usdTry: d.usdToTry || BASE_TRY });
+      if (d) {
+        setRates({ usdIqd: d.usdToIqd || BASE_IQD, usdTry: d.usdToTry || BASE_TRY });
+        setInvoiceTemplate(d.invoiceTemplate || CLASSIC_TEMPLATE);
+        setStoreNameForInvoice(d.storeName || "Trendy Store");
+      }
     }).catch(() => {});
   }, []);
 
@@ -1466,7 +1388,7 @@ export default function OrdersPage() {
                             >
                               <MessageCircle className="h-4 w-4 text-green-600" />
                             </a>
-                            <Button variant="ghost" size="icon" onClick={() => openInvoice(order)} title={t.orders.tooltips.invoice}>
+                            <Button variant="ghost" size="icon" onClick={() => openInvoice(order, invoiceTemplate, storeNameForInvoice)} title={t.orders.tooltips.invoice}>
                               <FileText className="h-4 w-4" />
                             </Button>
                           </div>
