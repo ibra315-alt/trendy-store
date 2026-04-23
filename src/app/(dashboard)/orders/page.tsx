@@ -1089,6 +1089,7 @@ export default function OrdersPage() {
   // Render
   // -----------------------------------------------------------------------
   return (
+    <>
     <div className="space-y-4 animate-fade-in-up">
 
       {/* Orders Table — desktop only */}
@@ -1406,8 +1407,8 @@ export default function OrdersPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl animate-fade-in-up"
-                  style={{ animationDelay: `${idx * 30}ms` }}
+                  className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl"
+                  style={{ position: "relative", zIndex: statusDropId === order.id ? 50 : "auto" }}
                 >
                   {/* ── Main card body ── */}
                   <div className="p-3 space-y-2">
@@ -1769,33 +1770,35 @@ export default function OrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Image preview modal */}
-      {previewImg && (
-        <div
-          className="fixed inset-0 z-[300] flex items-center justify-center"
-          style={{ backdropFilter: "blur(6px)", background: "rgba(0,0,0,0.75)" }}
-          onClick={() => setPreviewImg(null)}
-        >
-          <div
-            className="relative mx-4"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "min(420px, 92vw)" }}
-          >
-            <img
-              src={previewImg}
-              alt=""
-              className="w-full rounded-2xl object-contain shadow-2xl"
-              style={{ maxHeight: "72dvh" }}
-            />
-            <button
-              onClick={() => setPreviewImg(null)}
-              className="absolute -top-3 -right-3 flex items-center justify-center w-7 h-7 bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-lg hover:bg-[var(--surface-secondary)] transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
+
+    {/* Image preview modal — rendered OUTSIDE animated wrapper to avoid transform stacking context */}
+    {previewImg && (
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center"
+        style={{ backdropFilter: "blur(6px)", background: "rgba(0,0,0,0.75)" }}
+        onClick={() => setPreviewImg(null)}
+      >
+        <div
+          className="relative mx-4"
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: "min(420px, 92vw)" }}
+        >
+          <img
+            src={previewImg}
+            alt=""
+            className="w-full rounded-2xl object-contain shadow-2xl"
+            style={{ maxHeight: "72dvh" }}
+          />
+          <button
+            onClick={() => setPreviewImg(null)}
+            className="absolute -top-3 -right-3 flex items-center justify-center w-7 h-7 bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-lg hover:bg-[var(--surface-secondary)] transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
