@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
-  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package,
+  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package, X,
 } from "lucide-react";
-import { useAuthStore } from "@/store/auth";
 import { useT } from "@/lib/i18n";
 import { useBatchFilterStore } from "@/store/batch-filter";
+import { useOrderFilterStore } from "@/store/order-filter";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -17,13 +17,6 @@ function getGreeting(): string {
   if (h >= 18 && h < 24) return "مساء النور 🌙";
   return "وقت متأخر 🌙";
 }
-
-const BATCH_STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  open:            { bg: "rgba(59,130,246,0.15)",  text: "#60a5fa", border: "rgba(59,130,246,0.3)" },
-  shipped:         { bg: "rgba(249,115,22,0.15)",  text: "#fb923c", border: "rgba(249,115,22,0.3)" },
-  in_distribution: { bg: "rgba(168,85,247,0.15)",  text: "#c084fc", border: "rgba(168,85,247,0.3)" },
-  completed:       { bg: "rgba(34,197,94,0.15)",   text: "#4ade80", border: "rgba(34,197,94,0.3)" },
-};
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -52,8 +45,11 @@ export function AppNavbar() {
   const [greeting, setGreeting] = useState("");
   const [filterDropOpen, setFilterDropOpen] = useState(false);
   const filterDropRef = useRef<HTMLDivElement>(null);
-  const { statusFilter, counts, setStatusFilter } = useBatchFilterStore();
+  const [searchFocused, setSearchFocused] = useState(false);
   const router = useRouter();
+
+  const { statusFilter, counts, setStatusFilter } = useBatchFilterStore();
+  const { activeTab, search, setActiveTab, setSearch } = useOrderFilterStore();
 
   useEffect(() => { setMounted(true); setGreeting(getGreeting()); }, []);
 
@@ -158,17 +154,13 @@ export function AppNavbar() {
 
     return (
       <header className={headerBase} style={{ height: "56px" }}>
-        {/* Right: page title */}
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-8 h-8 rounded-xl" style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.25)" }}>
             <Package size={15} style={{ color: "#c084fc" }} />
           </div>
           <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{t.batches.title}</span>
         </div>
-
-        {/* Left: filter + add + theme */}
         <div className="flex items-center gap-2">
-          {/* Filter dropdown */}
           <div className="relative" ref={filterDropRef}>
             <button
               onClick={() => setFilterDropOpen((o) => !o)}
@@ -184,34 +176,25 @@ export function AppNavbar() {
                 style={{ transform: filterDropOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
             </button>
             {filterDropOpen && (
-              <div
-                className="absolute left-0 top-full mt-1.5 z-50 min-w-[170px] rounded-xl shadow-xl overflow-hidden py-1"
-                style={{ background: "#1e1e2e", border: "1px solid #333" }}
-                dir="rtl"
-              >
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[170px] rounded-xl shadow-xl overflow-hidden py-1"
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
                 {filterOptions.map(({ value, label, color }) => {
                   const cnt = counts[value] ?? 0;
                   const isActive = statusFilter === value;
                   return (
-                    <button
-                      key={value}
+                    <button key={value}
                       onClick={() => { setStatusFilter(value); setFilterDropOpen(false); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors text-right"
-                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "#ccc" }}
-                    >
+                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "#ccc" }}>
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
                       <span className="flex-1">{label}</span>
-                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold" style={{ background: color + "22", color }}>
-                        {cnt}
-                      </span>
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold" style={{ background: color + "22", color }}>{cnt}</span>
                     </button>
                   );
                 })}
               </div>
             )}
           </div>
-
-          {/* Add batch button */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("trendy:open-new-batch"))}
             className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
@@ -220,8 +203,6 @@ export function AppNavbar() {
             <Plus size={14} strokeWidth={2.5} />
             <span className="hidden sm:inline">{t.batches.newBatch}</span>
           </button>
-
-          <ThemeToggle />
         </div>
       </header>
     );
@@ -229,15 +210,95 @@ export function AppNavbar() {
 
   /* ── Orders page ── */
   if (pathname === "/orders") {
+    const STATUS_TABS = [
+      { label: t.orders.tabs.active, value: "active" },
+      { label: t.orders.tabs.all, value: "all" },
+      { label: t.orders.tabs.new, value: "new" },
+      { label: t.orders.tabs.in_progress, value: "in_progress" },
+      { label: t.orders.tabs.bought, value: "bought" },
+      { label: t.orders.tabs.shipped, value: "shipped" },
+      { label: t.orders.tabs.delivered, value: "delivered" },
+      { label: t.orders.tabs.unpaid, value: "unpaid" },
+    ];
+    const activeTabLabel = STATUS_TABS.find((tab) => tab.value === activeTab)?.label ?? STATUS_TABS[0].label;
+
     return (
       <header className={headerBase} style={{ height: "56px" }}>
+        {/* Right: title */}
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-8 h-8 rounded-xl" style={{ background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.25)" }}>
             <Package size={15} style={{ color: "#c9a84c" }} />
           </div>
-          <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{t.orders?.title ?? "الطلبات"}</span>
+          <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{t.orders.title}</span>
         </div>
+
+        {/* Left: filter + search + add */}
         <div className="flex items-center gap-2">
+          {/* Activities filter dropdown */}
+          <div className="relative" ref={filterDropRef}>
+            <button
+              onClick={() => setFilterDropOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              style={{ background: filterDropOpen ? "var(--surface-secondary)" : "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            >
+              <span className="hidden sm:inline">{activeTabLabel}</span>
+              <span className="sm:hidden">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+              </span>
+              <ChevronDown size={12} className="text-[var(--muted)]"
+                style={{ transform: filterDropOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+            </button>
+            {filterDropOpen && (
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[160px] rounded-xl shadow-xl overflow-hidden py-1"
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
+                {STATUS_TABS.map((tab) => {
+                  const isActive = activeTab === tab.value;
+                  return (
+                    <button key={tab.value}
+                      onClick={() => { setActiveTab(tab.value); setFilterDropOpen(false); }}
+                      className="w-full text-start px-4 py-2 text-sm transition-colors hover:brightness-125"
+                      style={{
+                        backgroundColor: isActive ? "rgba(139,92,246,0.15)" : "transparent",
+                        color: isActive ? "#a78bfa" : "#e5e7eb",
+                        borderRight: isActive ? "3px solid #8b5cf6" : "3px solid transparent",
+                        fontWeight: isActive ? 600 : 400,
+                      }}>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Search input */}
+          <div className="relative flex items-center">
+            <Search size={14} className="absolute end-2.5 text-[var(--muted)] pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder={t.orders.searchPlaceholder}
+              dir="rtl"
+              className="h-9 pe-8 ps-3 text-xs rounded-xl outline-none transition-all"
+              style={{
+                background: "var(--surface)",
+                border: `1px solid ${searchFocused ? "var(--accent)" : "var(--border)"}`,
+                color: "var(--foreground)",
+                width: searchFocused || search ? "160px" : "120px",
+                transition: "width 0.2s, border-color 0.15s",
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute start-2 text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Add order */}
           <button
             onClick={() => router.push("/orders?new=true")}
             className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
@@ -246,10 +307,6 @@ export function AppNavbar() {
             <Plus size={14} strokeWidth={2.5} />
             <span className="hidden sm:inline">{t.topbar.newOrder}</span>
           </button>
-          <button onClick={openCommandBar} className="flex items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer">
-            <Search size={17} strokeWidth={1.8} />
-          </button>
-          <ThemeToggle />
         </div>
       </header>
     );

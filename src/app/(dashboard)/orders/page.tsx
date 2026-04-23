@@ -43,6 +43,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/auth";
+import { useOrderFilterStore } from "@/store/order-filter";
 import { formatIQD, formatTRY } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { buildInvoiceVars, renderTemplate, CLASSIC_TEMPLATE } from "@/lib/invoice-templates";
@@ -406,8 +407,7 @@ export default function OrdersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const [activeTab, setActiveTab] = useState("active");
-  const [search, setSearch] = useState("");
+  const { activeTab, search } = useOrderFilterStore();
   const [searchDebounced, setSearchDebounced] = useState("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -415,20 +415,6 @@ export default function OrdersPage() {
   const [form, setForm] = useState<OrderFormData>(EMPTY_FORM);
   const [productItems, setProductItems] = useState<ProductItem[]>([createEmptyItem()]);
   const [saving, setSaving] = useState(false);
-
-  // Filter dropdown
-  const [filterDropOpen, setFilterDropOpen] = useState(false);
-  const filterDropRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!filterDropOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (filterDropRef.current && !filterDropRef.current.contains(e.target as Node))
-        setFilterDropOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [filterDropOpen]);
 
   // Status dropdown
   const [statusDropId, setStatusDropId] = useState<string | null>(null);
@@ -1104,58 +1090,7 @@ export default function OrdersPage() {
   // Render
   // -----------------------------------------------------------------------
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Page header */}
-      <h1 className="text-2xl font-bold tracking-tight">{t.orders.title}</h1>
-
-      {/* Filter Dropdown */}
-      <div className="relative inline-block" ref={filterDropRef}>
-        <button
-          type="button"
-          onClick={() => setFilterDropOpen((prev) => !prev)}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm"
-        >
-          <span>{STATUS_TABS.find((t) => t.value === activeTab)?.label ?? STATUS_TABS[0].label}</span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${filterDropOpen ? "rotate-180" : ""}`} />
-        </button>
-        {filterDropOpen && (
-          <div
-            className="absolute z-50 top-full mt-1 start-0 rounded-xl shadow-2xl overflow-hidden min-w-[10rem] py-1"
-            style={{ backgroundColor: "#1e1e2e", border: "1px solid #333" }}
-          >
-            {STATUS_TABS.map((tab) => {
-              const isActive = activeTab === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => { setActiveTab(tab.value); setFilterDropOpen(false); }}
-                  className="w-full text-start px-4 py-2 text-sm transition-colors hover:brightness-125"
-                  style={{
-                    backgroundColor: isActive ? "rgba(139,92,246,0.15)" : "transparent",
-                    color: isActive ? "#a78bfa" : "#e5e7eb",
-                    borderRight: isActive ? "3px solid #8b5cf6" : "3px solid transparent",
-                    fontWeight: isActive ? 600 : 400,
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative w-full md:max-w-sm">
-        <Search className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder={t.orders.searchPlaceholder}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pe-9"
-        />
-      </div>
+    <div className="space-y-4 animate-fade-in-up">
 
       {/* Orders Table — desktop only */}
       <Card className="card-hover overflow-hidden hidden md:block">
