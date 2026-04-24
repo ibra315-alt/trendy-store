@@ -137,11 +137,10 @@ export function AppNavbar() {
             <button
               onClick={() => window.dispatchEvent(new CustomEvent("trendy:open-new-customer"))}
               title="عميل جديد"
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+              className="flex items-center justify-center w-9 h-9 rounded-full hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
               style={{ background: "#c9a84c", color: "#111111" }}
             >
-              <Plus size={15} strokeWidth={2.5} />
-              <span className="hidden sm:inline text-[13px]">عميل جديد</span>
+              <Plus size={16} strokeWidth={2.5} />
             </button>
           </div>
         </div>
