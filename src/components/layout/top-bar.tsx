@@ -3,9 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Search, ChevronLeft, Plus, X, Users } from "lucide-react";
+import {
+  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package, X, Users,
+} from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/lib/i18n";
+import { useBatchFilterStore } from "@/store/batch-filter";
+import { useOrderFilterStore } from "@/store/order-filter";
 import { useCustomerFilterStore } from "@/store/customer-filter";
 
 function getGreeting(): string {
@@ -16,35 +20,29 @@ function getGreeting(): string {
   return "وقت متأخر 🌙";
 }
 
-const HEADER_CLS = `fixed top-0 left-0 right-0 z-40 flex flex-col
-  bg-transparent backdrop-blur-md border-b border-white/8 shadow-[0_1px_16px_rgba(0,0,0,0.07)]
-  sm:bg-card/40 sm:backdrop-blur-3xl sm:border-border/30 sm:shadow-none`;
-
-function BrandLogo({ greeting }: { greeting: string }) {
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = theme === "dark";
+  if (!mounted) return <div className="w-9 h-9" />;
   return (
-    <a
-      href="/"
-      className="flex flex-col items-start sm:flex-row sm:items-center gap-0 group select-none"
-      title="الرئيسية"
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="relative flex items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors duration-200 cursor-pointer overflow-hidden"
     >
-      <div className="flex items-center">
-        <span className="transition-opacity duration-200 group-hover:opacity-75"
-          style={{ fontSize: "17px", fontWeight: 500, letterSpacing: "0.16em", color: "var(--foreground)" }}>
-          trendy
-        </span>
-        <span className="transition-opacity duration-200 group-hover:opacity-75"
-          style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.16em", color: "#c9a84c" }}>
-          &nbsp;store
-        </span>
-      </div>
-      {greeting && (
-        <span className="sm:hidden text-[10px] font-medium leading-none -mt-0.5" style={{ color: "#c9a84c", opacity: 0.65 }}>
-          {greeting}
-        </span>
-      )}
-    </a>
+      <Sun size={17} strokeWidth={1.8} className="absolute transition-all duration-300"
+        style={{ transform: isDark ? "rotate(0deg) scale(1)" : "rotate(90deg) scale(0)", opacity: isDark ? 1 : 0 }} />
+      <Moon size={17} strokeWidth={1.8} className="absolute transition-all duration-300"
+        style={{ transform: isDark ? "rotate(-90deg) scale(0)" : "rotate(0deg) scale(1)", opacity: isDark ? 0 : 1 }} />
+    </button>
   );
 }
+
+const HEADER_CLS =
+  "fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-7 h-14 " +
+  "bg-transparent backdrop-blur-md border-b border-white/8 shadow-[0_1px_16px_rgba(0,0,0,0.07)] " +
+  "sm:bg-card/40 sm:backdrop-blur-3xl sm:border-border/30 sm:shadow-none";
 
 export function AppNavbar() {
   const pathname = usePathname();
@@ -53,21 +51,32 @@ export function AppNavbar() {
   const t = useT();
   const [mounted, setMounted] = useState(false);
   const [greeting, setGreeting] = useState("");
+  const [filterDropOpen, setFilterDropOpen] = useState(false);
+  const filterDropRef = useRef<HTMLDivElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
+  const { statusFilter, counts, setStatusFilter } = useBatchFilterStore();
+  const { activeTab, search: orderSearch, setActiveTab, setSearch: setOrderSearch } = useOrderFilterStore();
   const { search: customerSearch, count: customerCount, setSearch: setCustomerSearch } = useCustomerFilterStore();
 
-  const router = useRouter();
   const isDark = theme === "dark";
 
   const openCommandBar = useCallback(() => {
     window.dispatchEvent(new CustomEvent("toggle-command-bar"));
   }, []);
 
+  useEffect(() => { setMounted(true); setGreeting(getGreeting()); }, []);
+
   useEffect(() => {
-    setMounted(true);
-    setGreeting(getGreeting());
+    function handleClick(e: MouseEvent) {
+      if (filterDropRef.current && !filterDropRef.current.contains(e.target as Node)) {
+        setFilterDropOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   useEffect(() => {
@@ -85,12 +94,240 @@ export function AppNavbar() {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
 
-  // ── Customers page ──────────────────────────────────────────────────────────
+  /* ── Home page ── */
+  if (pathname === "/") {
+    return (
+      <header className={HEADER_CLS} style={{ height: "56px" }}>
+        <div className="flex items-center gap-2.5">
+          <a href="/" className="flex flex-col items-start sm:flex-row sm:items-center gap-0 group select-none" title="الرئيسية">
+            <div className="flex items-center">
+              <span className="transition-opacity duration-200 group-hover:opacity-75"
+                style={{ fontSize: "17px", fontWeight: 500, letterSpacing: "0.16em", color: "var(--foreground)" }}>trendy</span>
+              <span className="transition-opacity duration-200 group-hover:opacity-75"
+                style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.16em", color: "#c9a84c" }}>&nbsp;store</span>
+            </div>
+            {greeting && (
+              <span className="sm:hidden text-[10px] font-medium leading-none -mt-0.5" style={{ color: "#c9a84c", opacity: 0.65 }}>
+                {greeting}
+              </span>
+            )}
+          </a>
+          <div className="hidden sm:flex items-center gap-1.5">
+            <ChevronLeft size={13} strokeWidth={1.5} className="text-[var(--muted)] opacity-40" />
+            <span className="text-sm font-semibold" style={{ color: "#c9a84c" }}>{t.pageTitles["/"]}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => router.push("/orders?new=true")}
+            title={t.topbar.newOrder}
+            className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity duration-200 cursor-pointer shadow-sm"
+            style={{ background: "#c9a84c", color: "#111111" }}
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            <span className="hidden sm:inline">{t.topbar.newOrder}</span>
+          </button>
+          <button onClick={openCommandBar} className="flex sm:hidden items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors duration-200 cursor-pointer">
+            <Search size={18} strokeWidth={1.8} />
+          </button>
+          <button onClick={openCommandBar} className="hidden sm:flex items-center gap-3 px-4 h-9 rounded-2xl bg-[var(--surface-secondary)]/80 border border-[var(--border)]/40 text-[var(--muted)] text-[14px] hover:border-[var(--muted)] hover:bg-[var(--surface-secondary)] transition-all duration-200 cursor-pointer w-56">
+            <Search size={16} strokeWidth={1.8} className="shrink-0" />
+            <span className="flex-1 text-start">{t.topbar.search}</span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--muted)] font-mono">⌘K</kbd>
+          </button>
+          {mounted && (
+            <button
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              className="relative flex items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors duration-200 cursor-pointer overflow-hidden"
+            >
+              <Sun size={17} strokeWidth={1.8} className="absolute transition-all duration-300"
+                style={{ transform: isDark ? "rotate(0deg) scale(1)" : "rotate(90deg) scale(0)", opacity: isDark ? 1 : 0 }} />
+              <Moon size={17} strokeWidth={1.8} className="absolute transition-all duration-300"
+                style={{ transform: isDark ? "rotate(-90deg) scale(0)" : "rotate(0deg) scale(1)", opacity: isDark ? 0 : 1 }} />
+            </button>
+          )}
+        </div>
+      </header>
+    );
+  }
+
+  /* ── Batches page ── */
+  if (pathname === "/batches") {
+    const filterOptions = [
+      { value: "all", label: "الكل", color: "#6b7280" },
+      { value: "open", label: t.batches.status.open, color: "#3b82f6" },
+      { value: "shipped", label: t.batches.status.shipped, color: "#f97316" },
+      { value: "in_distribution", label: t.batches.status.in_distribution, color: "#a855f7" },
+      { value: "completed", label: t.batches.status.completed, color: "#22c55e" },
+    ];
+    const active = filterOptions.find((o) => o.value === statusFilter) ?? filterOptions[0];
+    const activeCount = counts[statusFilter] ?? counts["all"] ?? 0;
+
+    return (
+      <header className={HEADER_CLS} style={{ height: "56px" }}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl" style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.25)" }}>
+            <Package size={15} style={{ color: "#c084fc" }} />
+          </div>
+          <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{t.batches.title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative" ref={filterDropRef}>
+            <button
+              onClick={() => setFilterDropOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              style={{ background: filterDropOpen ? "var(--surface-secondary)" : "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            >
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: active.color }} />
+              <span className="hidden sm:inline">{active.label}</span>
+              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold" style={{ background: active.color + "22", color: active.color }}>
+                {activeCount}
+              </span>
+              <ChevronDown size={12} className="text-[var(--muted)]"
+                style={{ transform: filterDropOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+            </button>
+            {filterDropOpen && (
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[170px] rounded-xl shadow-xl overflow-hidden py-1"
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
+                {filterOptions.map(({ value, label, color }) => {
+                  const cnt = counts[value] ?? 0;
+                  const isActive = statusFilter === value;
+                  return (
+                    <button key={value}
+                      onClick={() => { setStatusFilter(value); setFilterDropOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors text-right"
+                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "#ccc" }}>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                      <span className="flex-1">{label}</span>
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold" style={{ background: color + "22", color }}>{cnt}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("trendy:open-new-batch"))}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+            style={{ background: "#c9a84c", color: "#111111" }}
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span className="hidden sm:inline">{t.batches.newBatch}</span>
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  /* ── Orders page ── */
+  if (pathname === "/orders") {
+    const STATUS_TABS = [
+      { label: t.orders.tabs.active, value: "active" },
+      { label: t.orders.tabs.all, value: "all" },
+      { label: t.orders.tabs.new, value: "new" },
+      { label: t.orders.tabs.in_progress, value: "in_progress" },
+      { label: t.orders.tabs.bought, value: "bought" },
+      { label: t.orders.tabs.shipped, value: "shipped" },
+      { label: t.orders.tabs.delivered, value: "delivered" },
+      { label: t.orders.tabs.unpaid, value: "unpaid" },
+    ];
+    const activeTabLabel = STATUS_TABS.find((tab) => tab.value === activeTab)?.label ?? STATUS_TABS[0].label;
+
+    return (
+      <header className={HEADER_CLS} style={{ height: "56px" }}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl" style={{ background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.25)" }}>
+            <Package size={15} style={{ color: "#c9a84c" }} />
+          </div>
+          <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{t.orders.title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative" ref={filterDropRef}>
+            <button
+              onClick={() => setFilterDropOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              style={{ background: filterDropOpen ? "var(--surface-secondary)" : "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            >
+              <span className="hidden sm:inline">{activeTabLabel}</span>
+              <span className="sm:hidden">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+              </span>
+              <ChevronDown size={12} className="text-[var(--muted)]"
+                style={{ transform: filterDropOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+            </button>
+            {filterDropOpen && (
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[160px] rounded-xl shadow-xl overflow-hidden py-1"
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
+                {STATUS_TABS.map((tab) => {
+                  const isActive = activeTab === tab.value;
+                  return (
+                    <button key={tab.value}
+                      onClick={() => { setActiveTab(tab.value); setFilterDropOpen(false); }}
+                      className="w-full text-start px-4 py-2 text-sm transition-colors hover:brightness-125"
+                      style={{
+                        backgroundColor: isActive ? "rgba(139,92,246,0.15)" : "transparent",
+                        color: isActive ? "#a78bfa" : "#e5e7eb",
+                        borderRight: isActive ? "3px solid #8b5cf6" : "3px solid transparent",
+                        fontWeight: isActive ? 600 : 400,
+                      }}>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="relative flex items-center">
+            {searchOpen ? (
+              <>
+                <Search size={13} className="absolute end-2.5 text-[var(--muted)] pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  dir="rtl"
+                  autoFocus
+                  className="h-9 pe-8 ps-3 text-xs rounded-xl outline-none"
+                  style={{ background: "var(--surface)", border: "1px solid var(--accent)", color: "var(--foreground)", width: "160px" }}
+                />
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setOrderSearch(""); setSearchOpen(false); }}
+                  className="absolute start-2 flex items-center justify-center w-5 h-5 rounded-full transition-colors cursor-pointer"
+                  style={{ background: orderSearch ? "var(--muted)" : "var(--border)", color: "var(--surface)" }}
+                >
+                  <X size={10} strokeWidth={2.5} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-full cursor-pointer transition-all hover:brightness-110"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
+              >
+                <Search size={15} strokeWidth={1.8} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => router.push("/orders?new=true")}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+            style={{ background: "#c9a84c", color: "#111111" }}
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span className="hidden sm:inline">{t.topbar.newOrder}</span>
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  /* ── Customers page ── */
   if (pathname === "/customers") {
     return (
       <header className={HEADER_CLS} style={{ height: "56px", overflow: "visible" }}>
-        <div className="flex items-center justify-between px-4 sm:px-7 h-14 min-h-[56px]" dir="rtl">
-          {/* Right: title + count only (no brand logo) */}
+        <div className="flex items-center justify-between w-full" dir="rtl">
           <div className="flex items-center gap-2">
             <Users size={15} className="text-[var(--muted)]" />
             <span className="text-sm font-semibold" style={{ color: "#c9a84c" }}>العملاء</span>
@@ -98,10 +335,7 @@ export function AppNavbar() {
               <span className="text-xs text-[var(--muted)] tabular-nums">({customerCount})</span>
             )}
           </div>
-
-          {/* Left: search + add customer */}
           <div className="flex items-center gap-2" style={{ position: "relative", zIndex: 50 }}>
-            {/* Expandable search */}
             {searchOpen ? (
               <div className="relative flex items-center" style={{ zIndex: 50 }}>
                 <Search size={12} className="absolute end-2.5 text-[var(--muted)] pointer-events-none" />
@@ -130,8 +364,6 @@ export function AppNavbar() {
                 <Search size={15} strokeWidth={1.8} />
               </button>
             )}
-
-            {/* Add customer button */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent("trendy:open-new-customer"))}
               title="عميل جديد"
@@ -146,68 +378,26 @@ export function AppNavbar() {
     );
   }
 
-  // ── Default bar (all other pages) ───────────────────────────────────────────
+  /* ── All other inner pages ── */
   function getPageTitle(p: string): string {
     if (t.pageTitles[p]) return t.pageTitles[p];
     for (const [path, title] of Object.entries(t.pageTitles)) {
-      if (path !== "/" && p.startsWith(path)) return title;
+      if (path !== "/" && p.startsWith(path)) return title as string;
     }
-    return t.pageTitles["/"];
+    return "";
   }
   const title = getPageTitle(pathname);
 
   return (
     <header className={HEADER_CLS} style={{ height: "56px" }}>
-      <div className="flex items-center justify-between px-4 sm:px-7 h-14 min-h-[56px]">
-        {/* Right side: Brand + Breadcrumb */}
-        <div className="flex items-center gap-2.5">
-          <BrandLogo greeting={greeting} />
-          <div className="hidden sm:flex items-center gap-1.5">
-            <ChevronLeft size={13} strokeWidth={1.5} className="text-[var(--muted)] opacity-40" />
-            <span className="text-sm font-semibold" style={{ color: "#c9a84c" }}>{title}</span>
-          </div>
-        </div>
-
-        {/* Left side: Add Order + Search + Theme */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => router.push("/orders?new=true")}
-            title={t.topbar.newOrder}
-            className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity duration-200 cursor-pointer shadow-sm"
-            style={{ background: "#c9a84c", color: "#111111" }}
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            <span className="hidden sm:inline">{t.topbar.newOrder}</span>
-          </button>
-
-          <button
-            onClick={openCommandBar}
-            className="flex sm:hidden items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors duration-200 cursor-pointer"
-          >
-            <Search size={18} strokeWidth={1.8} />
-          </button>
-          <button
-            onClick={openCommandBar}
-            className="hidden sm:flex items-center gap-3 px-4 h-9 rounded-2xl bg-[var(--surface-secondary)]/80 border border-[var(--border)]/40 text-[var(--muted)] text-[14px] hover:border-[var(--muted)] hover:bg-[var(--surface-secondary)] transition-all duration-200 cursor-pointer w-56"
-          >
-            <Search size={16} strokeWidth={1.8} className="shrink-0" />
-            <span className="flex-1 text-start">{t.topbar.search}</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--muted)] font-mono">⌘K</kbd>
-          </button>
-
-          {mounted && (
-            <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="relative flex items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors duration-200 cursor-pointer overflow-hidden"
-              title={isDark ? t.topbar.lightMode : t.topbar.darkMode}
-            >
-              <Sun size={17} strokeWidth={1.8} className="absolute transition-all duration-300"
-                style={{ transform: isDark ? "rotate(0deg) scale(1)" : "rotate(90deg) scale(0)", opacity: isDark ? 1 : 0 }} />
-              <Moon size={17} strokeWidth={1.8} className="absolute transition-all duration-300"
-                style={{ transform: isDark ? "rotate(-90deg) scale(0)" : "rotate(0deg) scale(1)", opacity: isDark ? 0 : 1 }} />
-            </button>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        {title && <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{title}</span>}
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={openCommandBar} className="flex items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer">
+          <Search size={17} strokeWidth={1.8} />
+        </button>
+        <ThemeToggle />
       </div>
     </header>
   );
