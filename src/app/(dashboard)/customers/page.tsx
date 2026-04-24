@@ -464,12 +464,21 @@ export default function CustomersPage() {
                   <input
                     id="instagram"
                     value={form.instagram}
-                    onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.includes("instagram.com/")) {
+                        const handle = extractInstagramHandle(val);
+                        setForm((f) => ({ ...f, instagram: handle }));
+                        if (handle.length >= 2) fetchInstagramName(handle);
+                      } else {
+                        setForm({ ...form, instagram: val });
+                      }
+                    }}
                     onPaste={(e) => {
                       e.preventDefault();
                       handleInstagramPaste(e.clipboardData.getData("text"));
                     }}
-                    placeholder="username أو الرابط"
+                    placeholder="@username"
                     dir="ltr"
                     className="w-full h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm pe-8 ps-3 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)] placeholder:text-[var(--muted)]"
                   />
