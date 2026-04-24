@@ -5,7 +5,6 @@ import { useAuthStore } from "@/store/auth";
 import { useCustomerFilterStore } from "@/store/customer-filter";
 import { formatIQD } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
   Dialog,
@@ -14,17 +13,25 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import {
   Pencil,
   Trash2,
   ArrowRight,
   Loader2,
+  Clipboard,
+  Instagram,
 } from "lucide-react";
 
 function parsePhones(phone: string | null): string[] {
   if (!phone) return [];
   return phone.split(/[,/\n|،]+/).map((p) => p.trim()).filter(Boolean);
+}
+
+function extractInstagramHandle(input: string): string {
+  const trimmed = input.trim();
+  const urlMatch = trimmed.match(/instagram\.com\/([^/?#\s]+)/i);
+  if (urlMatch) return urlMatch[1];
+  return trimmed.replace(/^@/, "");
 }
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
@@ -129,9 +136,8 @@ export default function CustomersPage() {
   // Order history view
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  const fetchInstagramName = async () => {
-    const handle = form.instagram.replace(/^@/, "").trim();
-    if (!handle) return;
+  const fetchInstagramName = async (handle: string) => {
+    if (!handle || handle.length < 2) return;
     setFetchingIG(true);
     try {
       const res = await fetch("/api/instagram", {
@@ -145,6 +151,19 @@ export default function CustomersPage() {
       }
     } catch { /* ignore */ }
     setFetchingIG(false);
+  };
+
+  const handleInstagramPaste = (raw: string) => {
+    const handle = extractInstagramHandle(raw);
+    setForm((f) => ({ ...f, instagram: handle }));
+    if (handle.length >= 2) fetchInstagramName(handle);
+  };
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      handleInstagramPaste(text);
+    } catch { /* clipboard access denied */ }
   };
 
   const fetchCustomers = useCallback(async () => {
@@ -431,52 +450,111 @@ export default function CustomersPage() {
         <DialogContent>
           <DialogClose onClose={() => setDialogOpen(false)} />
           <DialogHeader>
-            <DialogTitle>{editingId ? "تعديل العميل" : "عميل جديد"}</DialogTitle>
+            <DialogTitle className="text-base">{editingId ? "تعديل العميل" : "عميل جديد"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">الاسم *</Label>
-              <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="اسم العميل" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="instagram">انستغرام</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="instagram"
-                  value={form.instagram}
-                  onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-                  placeholder="اسم المستخدم (بدون @)"
-                  className="flex-1"
-                  onBlur={() => { if (form.instagram && !form.name) fetchInstagramName(); }}
-                />
-                <Button type="button" variant="outline" size="sm" onClick={fetchInstagramName}
-                  disabled={!form.instagram.trim() || fetchingIG} className="shrink-0 h-10">
-                  {fetchingIG ? <Loader2 className="h-4 w-4 animate-spin" /> : "جلب الاسم"}
-                </Button>
+
+          <div className="space-y-3 mt-3" dir="rtl">
+
+            {/* Instagram — paste button + auto-fetch */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--muted)] mb-1.5 block">انستغرام</label>
+              <div className="flex gap-1.5">
+                <div className="relative flex-1">
+                  <Instagram size={13} className="absolute end-3 top-1/2 -translate-y-1/2 text-[var(--muted)] pointer-events-none" />
+                  <input
+                    id="instagram"
+                    value={form.instagram}
+                    onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      handleInstagramPaste(e.clipboardData.getData("text"));
+                    }}
+                    placeholder="username أو الرابط"
+                    dir="ltr"
+                    className="w-full h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm pe-8 ps-3 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)] placeholder:text-[var(--muted)]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={pasteFromClipboard}
+                  title="لصق من الحافظة"
+                  className="flex items-center justify-center w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer shrink-0"
+                >
+                  {fetchingIG ? <Loader2 size={13} className="animate-spin" /> : <Clipboard size={13} />}
+                </button>
               </div>
+              {fetchingIG && (
+                <p className="text-[10px] text-[var(--muted)] mt-1 flex items-center gap-1">
+                  <Loader2 size={10} className="animate-spin" /> جاري جلب الاسم...
+                </p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">الهاتف</Label>
-              <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="رقم الهاتف" />
+
+            {/* Name */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--muted)] mb-1.5 block">
+                الاسم <span className="text-red-400">*</span>
+              </label>
+              <input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="اسم العميل"
+                className="w-full h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm px-3 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)] placeholder:text-[var(--muted)]"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">المدينة</Label>
-                <Select id="city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}>
-                  <option value="">اختر المدينة</option>
+
+            {/* Phone */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--muted)] mb-1.5 block">الهاتف</label>
+              <input
+                id="phone"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="07xxxxxxxxxx"
+                dir="ltr"
+                className="w-full h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm px-3 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)] placeholder:text-[var(--muted)]"
+              />
+            </div>
+
+            {/* City + Area */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-medium text-[var(--muted)] mb-1.5 block">المحافظة</label>
+                <Select id="city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  className="h-9 rounded-xl text-sm">
+                  <option value="">اختر...</option>
                   {IRAQI_CITIES.map((city) => <option key={city} value={city}>{city}</option>)}
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="area">المنطقة</Label>
-                <Input id="area" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="المنطقة" />
+              <div>
+                <label className="text-[11px] font-medium text-[var(--muted)] mb-1.5 block">المنطقة</label>
+                <input
+                  id="area"
+                  value={form.area}
+                  onChange={(e) => setForm({ ...form, area: e.target.value })}
+                  placeholder="الحي / المنطقة"
+                  className="w-full h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm px-3 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)] placeholder:text-[var(--muted)]"
+                />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>إلغاء</Button>
-              <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
-                {saving ? "جاري الحفظ..." : editingId ? "تحديث" : "إنشاء"}
-              </Button>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleSave}
+                disabled={saving || !form.name.trim()}
+                className="flex-1 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                style={{ background: "#c9a84c", color: "#111" }}
+              >
+                {saving ? <Loader2 size={14} className="animate-spin mx-auto" /> : editingId ? "تحديث" : "إنشاء"}
+              </button>
+              <button
+                onClick={() => setDialogOpen(false)}
+                className="h-9 px-4 rounded-xl text-sm border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--foreground)] transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
             </div>
           </div>
         </DialogContent>
