@@ -1517,6 +1517,9 @@ export default function OrdersPage() {
           <div className="space-y-3 pb-32">
             {orders.map((order, idx) => {
               const imgs = order.images ? (() => { try { return JSON.parse(order.images!); } catch { return []; } })() : [];
+              const itemCount = getOrderItemCount(order);
+              const subItems = parseSubItems(order.items);
+              const isExpanded = expandedIds.has(order.id);
               return (
                 <div
                   key={order.id}
@@ -1641,6 +1644,42 @@ export default function OrdersPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Extra items toggle */}
+                  {itemCount > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(order.id)}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[12px] font-medium transition-colors"
+                        style={{ background: "var(--surface-secondary)", color: "var(--muted)" }}
+                      >
+                        <span>{itemCount - 1}+ منتج إضافي — اضغط للعرض</span>
+                        <ChevronDown size={13} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                      {isExpanded && subItems.map((sub, si) => (
+                        <div key={si} className="rounded-xl p-3 space-y-1.5" style={{ background: "var(--surface-secondary)", border: "1px solid var(--border)" }}>
+                          <div className="flex items-center gap-2">
+                            {sub.images?.[0] && (
+                              <button type="button" onClick={() => setPreviewImg(sub.images![0])}>
+                                <img src={sub.images[0]} alt="" className="h-10 w-10 rounded-lg object-cover border border-[var(--border)] cursor-zoom-in" />
+                              </button>
+                            )}
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <span className="text-[13px] font-medium text-[var(--foreground)]">{PRODUCT_TYPE_LABELS[sub.productType] || sub.productType}</span>
+                              {sub.color && <p className="text-[11px] text-[var(--muted)]">{sub.color}{sub.size ? ` · ${sub.size}` : ""}</p>}
+                            </div>
+                            {sub.productLink && (
+                              <a href={sub.productLink} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                                <ExternalLink size={10} />فتح
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
 
                   {/* Actions row */}
                   <div className="flex items-center justify-between pt-2.5 border-t border-[var(--border)]/40">
