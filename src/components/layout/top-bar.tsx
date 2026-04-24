@@ -88,13 +88,11 @@ export function AppNavbar() {
   // ── Customers page ──────────────────────────────────────────────────────────
   if (pathname === "/customers") {
     return (
-      <header className={HEADER_CLS} style={{ height: "56px" }}>
+      <header className={HEADER_CLS} style={{ height: "56px", overflow: "visible" }}>
         <div className="flex items-center justify-between px-4 sm:px-7 h-14 min-h-[56px]" dir="rtl">
-          {/* Right: Brand + title + count */}
-          <div className="flex items-center gap-2.5">
-            <BrandLogo greeting={greeting} />
-            <ChevronLeft size={13} strokeWidth={1.5} className="text-[var(--muted)] opacity-40" />
-            <Users size={14} className="text-[var(--muted)]" />
+          {/* Right: title + count only (no brand logo) */}
+          <div className="flex items-center gap-2">
+            <Users size={15} className="text-[var(--muted)]" />
             <span className="text-sm font-semibold" style={{ color: "#c9a84c" }}>العملاء</span>
             {customerCount > 0 && (
               <span className="text-xs text-[var(--muted)] tabular-nums">({customerCount})</span>
@@ -102,10 +100,10 @@ export function AppNavbar() {
           </div>
 
           {/* Left: search + add customer */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ position: "relative", zIndex: 50 }}>
             {/* Expandable search */}
             {searchOpen ? (
-              <div className="relative flex items-center">
+              <div className="relative flex items-center" style={{ zIndex: 50 }}>
                 <Search size={12} className="absolute end-2.5 text-[var(--muted)] pointer-events-none" />
                 <input
                   ref={searchInputRef}
