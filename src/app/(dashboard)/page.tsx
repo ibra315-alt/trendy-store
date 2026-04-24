@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
   Clock,
@@ -314,7 +315,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
-  const token = useAuthStore((s) => s.token);
+  const router = useRouter();
+  useAuthStore((s) => s.token);
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -322,6 +324,7 @@ export default function DashboardPage() {
       setData(null);
       try {
         const res = await fetch("/api/dashboard");
+        if (res.status === 401) { router.push("/login"); return; }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         setData(json);
@@ -332,7 +335,7 @@ export default function DashboardPage() {
       }
     }
     fetchDashboard();
-  }, [retryCount]);
+  }, [retryCount, router]);
 
   if (loading) {
     return (

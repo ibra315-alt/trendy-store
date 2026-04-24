@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/store/auth";
+import { useRouter } from "next/navigation";
 import { formatUSD, formatTRY } from "@/lib/utils";
 import { ChevronDown, Users, Truck, TrendingDown, Wallet, MessageCircle, Check, ArrowRightLeft, MapPin, TrendingUp } from "lucide-react";
 
@@ -358,26 +359,38 @@ function BatchCard({
 
 export default function FinancePage() {
   const { isAdmin } = useAuthStore();
+  const router = useRouter();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [batchesRes, settingsRes] = await Promise.all([
-          fetch("/api/batches"),
-          fetch("/api/settings"),
-        ]);
-        if (batchesRes.ok) setBatches(await batchesRes.json());
-        if (settingsRes.ok) setSettings(await settingsRes.json());
-      } catch {
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const [batchesRes, settingsRes] = await Promise.all([
+        fetch("/api/batches"),
+        fetch("/api/settings"),
+      ]);
+      if (batchesRes.status === 401 || settingsRes.status === 401) {
+        router.push("/login");
+        return;
       }
+      if (!batchesRes.ok || !settingsRes.ok) {
+        setFetchError("فشل تحميل البيانات — تحقق من الاتصال وأعد المحاولة");
+        return;
+      }
+      setBatches(await batchesRes.json());
+      setSettings(await settingsRes.json());
+    } catch {
+      setFetchError("تعذّر الاتصال بالخادم — تحقق من الاتصال وأعد المحاولة");
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, []);
+  }, [router]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleOrdersChange = (batchId: string, updatedOrders: Order[]) => {
     setBatches((prev) =>
@@ -393,10 +406,25 @@ export default function FinancePage() {
     );
   }
 
-  if (loading || !settings) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <p style={{ color: "var(--muted)" }}>جاري تحميل البيانات...</p>
+      </div>
+    );
+  }
+
+  if (fetchError || !settings) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 h-[60vh]">
+        <p className="text-sm" style={{ color: "var(--muted)" }}>{fetchError ?? "فشل تحميل البيانات"}</p>
+        <button
+          onClick={fetchData}
+          className="text-xs px-4 py-2 rounded-xl border hover:brightness-110 transition-all"
+          style={{ borderColor: "var(--border)", color: "var(--foreground)", background: "var(--surface)" }}
+        >
+          إعادة المحاولة
+        </button>
       </div>
     );
   }
