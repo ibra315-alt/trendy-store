@@ -290,7 +290,7 @@ function BatchOrdersModal({
 
   const statusLabel = (s: string) => ORDER_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
 
-  const btnBase = "flex items-center gap-1 h-7 px-2.5 rounded-lg text-[10px] font-semibold shrink-0 transition-colors cursor-pointer";
+  const btnBase = "flex items-center justify-center gap-1 h-7 w-7 sm:w-auto sm:px-2.5 rounded-lg text-[10px] font-semibold shrink-0 transition-colors cursor-pointer";
   const btnDefault = `${btnBase} bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--foreground)]`;
   const btnGreen  = `${btnBase} bg-green-500/10 border border-green-500/20 text-green-600 hover:bg-green-500/15`;
   const btnRed    = `${btnBase} bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/15`;
@@ -461,39 +461,42 @@ function BatchOrdersModal({
                           </span>
                         </div>
 
-                        {/* Action buttons — compact single row */}
+                        {/* Action buttons — icons on mobile, icon+label on desktop */}
                         <div className="flex gap-1 overflow-x-auto pb-0.5">
-                          <button onClick={() => startEdit(order)} className={btnDefault}>
-                            <Pencil size={11} />{t.batches.modal.edit}
+                          <button onClick={() => startEdit(order)} className={btnDefault} title={t.batches.modal.edit}>
+                            <Pencil size={11} /><span className="hidden sm:inline">{t.batches.modal.edit}</span>
                           </button>
                           <a
                             href={buildWhatsAppUrl(order)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={btnGreen}
+                            title={t.batches.modal.whatsapp}
                           >
-                            <MessageCircle size={11} />{t.batches.modal.whatsapp}
+                            <MessageCircle size={11} /><span className="hidden sm:inline">{t.batches.modal.whatsapp}</span>
                           </a>
-                          <button onClick={() => openInvoice(order)} className={btnDefault}>
-                            <FileText size={11} />{t.batches.modal.print}
+                          <button onClick={() => openInvoice(order)} className={btnDefault} title={t.batches.modal.print}>
+                            <FileText size={11} /><span className="hidden sm:inline">{t.batches.modal.print}</span>
                           </button>
                           <button
                             onClick={() => updateOrder(order.id, { status: "new" })}
                             disabled={isLoading || order.status === "new"}
                             className={`${btnDefault} disabled:opacity-40`}
+                            title={t.batches.modal.resetPending}
                           >
-                            <RotateCcw size={11} />{t.batches.modal.resetPending}
+                            <RotateCcw size={11} /><span className="hidden sm:inline">{t.batches.modal.resetPending}</span>
                           </button>
                           <button
                             onClick={() => { setMovingOrderId(order.id); setTargetBatchId(""); }}
                             disabled={otherBatches.length === 0}
                             className={`${btnDefault} disabled:opacity-40`}
+                            title={t.batches.modal.moveToBatch}
                           >
-                            <ArrowRightLeft size={11} />{t.batches.modal.moveToBatch}
+                            <ArrowRightLeft size={11} /><span className="hidden sm:inline">{t.batches.modal.moveToBatch}</span>
                           </button>
                           {isAdmin && (
-                            <button onClick={() => deleteOrder(order.id)} disabled={isLoading} className={btnRed}>
-                              <Trash2 size={11} />{t.batches.modal.delete}
+                            <button onClick={() => deleteOrder(order.id)} disabled={isLoading} className={btnRed} title={t.batches.modal.delete}>
+                              <Trash2 size={11} /><span className="hidden sm:inline">{t.batches.modal.delete}</span>
                             </button>
                           )}
                         </div>
@@ -723,12 +726,17 @@ export default function BatchesPage() {
             return (
               <div
                 key={batch.id}
-                className="rounded-2xl overflow-hidden flex flex-col"
-                style={{ border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+                className="rounded-2xl flex flex-col"
+                style={{
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-sm)",
+                  position: "relative",
+                  zIndex: statusDropBatchId === batch.id ? 20 : "auto",
+                }}
               >
                 {/* ── Dark header ── */}
                 <div
-                  className="px-4 py-3 flex items-center justify-between gap-2"
+                  className="px-4 py-3 flex items-center justify-between gap-2 rounded-t-2xl"
                   style={{ background: "linear-gradient(135deg,#0f172a 0%,#1a2e4a 100%)" }}
                 >
                   <div className="min-w-0">
@@ -751,7 +759,7 @@ export default function BatchesPage() {
                     </button>
                     {statusDropBatchId === batch.id && (
                       <div
-                        className="absolute right-0 top-full mt-1.5 z-30 min-w-[140px] rounded-xl shadow-xl overflow-hidden py-1"
+                        className="absolute right-0 top-full mt-1.5 z-[100] min-w-[148px] rounded-xl shadow-2xl overflow-hidden py-1"
                         style={{ background: "#1e1e2e", border: "1px solid #333" }}
                         dir="rtl"
                       >
@@ -822,7 +830,7 @@ export default function BatchesPage() {
 
                 {/* ── Footer actions ── */}
                 <div
-                  className="flex items-center gap-1.5 px-3 py-2.5"
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-b-2xl"
                   style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}
                 >
                   <button

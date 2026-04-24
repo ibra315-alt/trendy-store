@@ -313,14 +313,16 @@ function BatchWidget({ batch, progress }: { batch: NonNullable<DashboardData["op
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
     async function fetchDashboard() {
+      setLoading(true);
+      setData(null);
       try {
-        const res = await fetch("/api/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch("/api/dashboard");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         setData(json);
       } catch (err) {
@@ -330,7 +332,7 @@ export default function DashboardPage() {
       }
     }
     fetchDashboard();
-  }, [token]);
+  }, [retryCount]);
 
   if (loading) {
     return (
@@ -352,8 +354,14 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <p className="text-[var(--muted)]">فشل تحميل البيانات</p>
+      <div className="flex flex-col items-center justify-center gap-3 p-12">
+        <p className="text-[var(--muted)] text-sm">فشل تحميل البيانات</p>
+        <button
+          onClick={() => setRetryCount((c) => c + 1)}
+          className="text-xs px-4 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--surface)] transition-colors text-[var(--foreground)]"
+        >
+          إعادة المحاولة
+        </button>
       </div>
     );
   }

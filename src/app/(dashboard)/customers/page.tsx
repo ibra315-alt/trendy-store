@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/store/auth";
+import { useCustomerFilterStore } from "@/store/customer-filter";
 import { formatIQD } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,14 +26,17 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import {
-  Search,
   Plus,
   Pencil,
   Trash2,
   ArrowLeft,
-  Users,
   Loader2,
 } from "lucide-react";
+
+function parsePhones(phone: string | null): string[] {
+  if (!phone) return [];
+  return phone.split(/[,/\n|،]+/).map((p) => p.trim()).filter(Boolean);
+}
 
 interface Customer {
   id: string;
@@ -97,9 +101,9 @@ const paymentLabels: Record<string, string> = {
 
 export default function CustomersPage() {
   const { isAdmin } = useAuthStore();
+  const { search, setCount } = useCustomerFilterStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -146,17 +150,24 @@ export default function CustomersPage() {
       if (res.ok) {
         const data = await res.json();
         setCustomers(data);
+        setCount(data.length);
       }
     } catch (err) {
       console.error("Failed to fetch customers:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setCount]);
 
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  useEffect(() => {
+    function handleNewCustomer() { handleOpenCreate(); }
+    window.addEventListener("trendy:open-new-customer", handleNewCustomer);
+    return () => window.removeEventListener("trendy:open-new-customer", handleNewCustomer);
+  }, []);
 
   if (!isAdmin()) {
     return (
@@ -396,122 +407,105 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            العملاء
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {customers.length} عميل
-          </p>
+    <div className="space-y-3">
+      {/* Compact customer list */}
+      <div
+        className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden"
+      >
+        {/* Column headers — desktop only */}
+        <div
+          className="hidden sm:grid px-3 py-2 border-b border-[var(--border)] bg-[var(--background)]"
+          style={{ gridTemplateColumns: "140px 1fr 130px 68px" }}
+          dir="ltr"
+        >
+          <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">المستخدم</span>
+          <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide text-center">المحافظة</span>
+          <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide text-right">الهاتف</span>
+          <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide text-right"></span>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="h-4 w-4 me-2" />
-          عميل جديد
-        </Button>
-      </div>
 
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="البحث في العملاء..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="ps-10"
-        />
-      </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin text-[var(--muted)]" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-sm text-[var(--muted)]">
+              {search ? "لا يوجد عملاء مطابقين." : "لا يوجد عملاء بعد."}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {filtered.map((customer) => {
+              const phones = parsePhones(customer.phone);
+              return (
+                <div
+                  key={customer.id}
+                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--surface-secondary)] cursor-pointer group transition-colors"
+                  dir="ltr"
+                  onClick={() => handleRowClick(customer)}
+                >
+                  {/* LEFT: instagram handle / name */}
+                  <div className="w-[110px] sm:w-[140px] shrink-0">
+                    <p className="text-[13px] font-semibold text-[var(--foreground)] truncate">
+                      {customer.instagram ? `@${customer.instagram}` : customer.name}
+                    </p>
+                    {customer.instagram && (
+                      <p className="text-[11px] text-[var(--muted)] truncate">{customer.name}</p>
+                    )}
+                  </div>
 
-      {/* Customer table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground">جاري تحميل العملاء...</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground">
-                {search ? "لا يوجد عملاء مطابقين للبحث." : "لا يوجد عملاء بعد."}
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>الاسم</TableHead>
-                  <TableHead>انستغرام</TableHead>
-                  <TableHead>الهاتف</TableHead>
-                  <TableHead>المدينة / المنطقة</TableHead>
-                  <TableHead className="text-center">الطلبات</TableHead>
-                  <TableHead className="text-start">القيمة الإجمالية</TableHead>
-                  <TableHead className="text-center">VIP</TableHead>
-                  <TableHead className="text-start">الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((customer) => (
-                  <TableRow
-                    key={customer.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleRowClick(customer)}
+                  {/* CENTER: city + area */}
+                  <div className="flex-1 text-center">
+                    {customer.city ? (
+                      <>
+                        <p className="text-[12px] font-medium text-[var(--foreground)]">{customer.city}</p>
+                        {customer.area && (
+                          <p className="text-[11px] text-[var(--muted)]">{customer.area}</p>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[11px] text-[var(--muted)]">—</span>
+                    )}
+                  </div>
+
+                  {/* RIGHT: phone(s) */}
+                  <div className="w-[108px] sm:w-[130px] shrink-0 text-right">
+                    {phones.length > 0 ? (
+                      phones.map((ph, i) => (
+                        <p key={i} className="text-[11px] sm:text-[12px] font-mono text-[var(--foreground)] tabular-nums leading-tight">
+                          {ph}
+                        </p>
+                      ))
+                    ) : (
+                      <span className="text-[11px] text-[var(--muted)]">—</span>
+                    )}
+                  </div>
+
+                  {/* Desktop action buttons (hover reveal) */}
+                  <div
+                    className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 w-16 justify-end"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <TableCell className="font-medium">
-                      {customer.name}
-                    </TableCell>
-                    <TableCell>
-                      {customer.instagram ? `@${customer.instagram}` : "-"}
-                    </TableCell>
-                    <TableCell>{customer.phone || "-"}</TableCell>
-                    <TableCell>
-                      {customer.city || "-"}
-                      {customer.area && `، ${customer.area}`}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {customer.totalOrders}
-                    </TableCell>
-                    <TableCell className="text-start">
-                      {formatIQD(customer.ltv)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {customer.isVIP ? (
-                        <Badge variant="warning">
-                          <span className="me-1">&#11088;</span>VIP
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-start">
-                      <div
-                        className="flex items-center justify-end gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEdit(customer)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteClick(customer)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    <button
+                      onClick={() => handleOpenEdit(customer)}
+                      className="p-1.5 rounded-lg hover:bg-[var(--background)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(customer)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--muted)] hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
