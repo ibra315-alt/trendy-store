@@ -156,14 +156,23 @@ export default function CustomersPage() {
   };
 
   const applyInstagramValue = (raw: string) => {
-    const handle = extractInstagramHandle(raw);
-    setForm((f) => ({ ...f, instagram: handle }));
-    if (handle.length >= 2) fetchInstagramName(handle);
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    const urlMatch = trimmed.match(/instagram\.com\/([^/?#\s]+)/i);
+    if (urlMatch) {
+      const handle = urlMatch[1];
+      setForm((f) => ({ ...f, name: f.name || handle }));
+      fetchInstagramName(handle);
+    } else {
+      const handle = trimmed.replace(/^@/, "");
+      if (handle.length >= 2) fetchInstagramName(handle);
+    }
   };
 
   const pasteFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
+      setForm((f) => ({ ...f, instagram: text.trim() }));
       applyInstagramValue(text);
     } catch { /* clipboard access denied */ }
   };
@@ -468,7 +477,7 @@ export default function CustomersPage() {
                     value={form.instagram}
                     onChange={(e) => setForm({ ...form, instagram: e.target.value })}
                     onBlur={(e) => applyInstagramValue(e.target.value)}
-                    placeholder="@username أو الرابط"
+                    placeholder="الرابط أو @username"
                     dir="ltr"
                     className="w-full h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm pe-8 ps-3 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)] placeholder:text-[var(--muted)]"
                   />
