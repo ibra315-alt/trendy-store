@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
-  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package, X, Users,
+  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package, X, Users, Upload,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useBatchFilterStore } from "@/store/batch-filter";
@@ -357,6 +357,13 @@ export function AppNavbar() {
                 <Search size={15} strokeWidth={1.8} />
               </button>
             )}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("trendy:open-import-customers"))}
+              title="استيراد زبائن"
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer"
+            >
+              <Upload size={15} strokeWidth={1.8} />
+            </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent("trendy:open-new-customer"))}
               title="عميل جديد"

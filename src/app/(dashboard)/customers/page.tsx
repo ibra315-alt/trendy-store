@@ -20,6 +20,10 @@ import {
   Loader2,
   Clipboard,
   Instagram,
+  Upload,
+  FileArchive,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 function parsePhones(phone: string | null): string[] {
@@ -128,6 +132,19 @@ export default function CustomersPage() {
   const [fetchingIG, setFetchingIG] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Import dialog
+  const [importOpen, setImportOpen] = useState(false);
+  const [importStep, setImportStep] = useState<"upload" | "map" | "done">("upload");
+  const [importHeaders, setImportHeaders] = useState<string[]>([]);
+  const [importPreview, setImportPreview] = useState<Record<string, string>[]>([]);
+  const [importTotal, setImportTotal] = useState(0);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importMapping, setImportMapping] = useState<Record<string, string>>({ name: "", instagram: "", phone: "", city: "", area: "" });
+  const [importParsing, setImportParsing] = useState(false);
+  const [importingData, setImportingData] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number } | null>(null);
+  const [importError, setImportError] = useState("");
+
   // Delete confirmation
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
@@ -177,6 +194,65 @@ export default function CustomersPage() {
     } catch { /* clipboard access denied */ }
   };
 
+  const handleImportFile = async (file: File) => {
+    setImportFile(file);
+    setImportError("");
+    setImportParsing(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("action", "parse");
+      const res = await fetch("/api/import/customers", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { setImportError(data.error ?? "خطأ غير معروف"); setImportParsing(false); return; }
+      setImportHeaders(data.headers);
+      setImportPreview(data.preview);
+      setImportTotal(data.total);
+      // Auto-map obvious column names
+      const autoMap: Record<string, string> = { name: "", instagram: "", phone: "", city: "", area: "" };
+      for (const h of data.headers) {
+        const l = h.toLowerCase();
+        if (!autoMap.name      && /name|اسم|الاسم/.test(l))          autoMap.name = h;
+        if (!autoMap.instagram && /instagram|انستغرام|انستقرام/.test(l)) autoMap.instagram = h;
+        if (!autoMap.phone     && /phone|هاتف|جوال|موبايل|تلفون/.test(l)) autoMap.phone = h;
+        if (!autoMap.city      && /city|محافظة|المحافظة|مدينة/.test(l))   autoMap.city = h;
+        if (!autoMap.area      && /area|منطقة|حي|المنطقة/.test(l))        autoMap.area = h;
+      }
+      setImportMapping(autoMap);
+      setImportStep("map");
+    } catch { setImportError("فشل قراءة الملف"); }
+    setImportParsing(false);
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importFile || !importMapping.name) return;
+    setImportingData(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", importFile);
+      fd.append("action", "import");
+      fd.append("mapping", JSON.stringify(importMapping));
+      const res = await fetch("/api/import/customers", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { setImportError(data.error ?? "فشل الاستيراد"); setImportingData(false); return; }
+      setImportResult(data);
+      setImportStep("done");
+      fetchCustomers();
+    } catch { setImportError("فشل الاستيراد"); }
+    setImportingData(false);
+  };
+
+  const resetImport = () => {
+    setImportStep("upload");
+    setImportFile(null);
+    setImportHeaders([]);
+    setImportPreview([]);
+    setImportTotal(0);
+    setImportMapping({ name: "", instagram: "", phone: "", city: "", area: "" });
+    setImportResult(null);
+    setImportError("");
+  };
+
   const fetchCustomers = useCallback(async () => {
     try {
       const res = await fetch("/api/customers");
@@ -196,8 +272,13 @@ export default function CustomersPage() {
 
   useEffect(() => {
     function handleNewCustomer() { handleOpenCreate(); }
+    function handleImport() { setImportOpen(true); }
     window.addEventListener("trendy:open-new-customer", handleNewCustomer);
-    return () => window.removeEventListener("trendy:open-new-customer", handleNewCustomer);
+    window.addEventListener("trendy:open-import-customers", handleImport);
+    return () => {
+      window.removeEventListener("trendy:open-new-customer", handleNewCustomer);
+      window.removeEventListener("trendy:open-import-customers", handleImport);
+    };
   }, []);
 
   if (!isAdmin()) {
@@ -593,6 +674,149 @@ export default function CustomersPage() {
                 {deleting ? "جاري الحذف..." : "حذف"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Import Dialog ── */}
+      <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) resetImport(); }}>
+        <DialogContent>
+          <DialogClose onClose={() => { setImportOpen(false); resetImport(); }} />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileArchive size={16} style={{ color: "#c9a84c" }} />
+              استيراد زبائن من Notion
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="mt-3 space-y-4" dir="rtl">
+
+            {/* Step 1: Upload */}
+            {importStep === "upload" && (
+              <div className="space-y-3">
+                <p className="text-xs text-[var(--muted)]">
+                  صدّر قاعدة بيانات زبائنك من Notion كـ CSV ثم اضغط Export كـ ZIP، وارفع الملف هنا.
+                </p>
+                <label
+                  className="flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border-2 border-dashed cursor-pointer transition-colors hover:border-[var(--accent)]"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                >
+                  <input
+                    type="file"
+                    accept=".zip"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }}
+                  />
+                  {importParsing ? (
+                    <Loader2 size={28} className="animate-spin text-[var(--muted)]" />
+                  ) : (
+                    <>
+                      <Upload size={28} className="text-[var(--muted)]" />
+                      <span className="text-sm text-[var(--muted)]">اختر ملف ZIP</span>
+                      <span className="text-[10px] text-[var(--muted)] opacity-60">.zip يحتوي على ملف CSV</span>
+                    </>
+                  )}
+                </label>
+                {importError && (
+                  <div className="flex items-center gap-2 text-sm text-red-500">
+                    <AlertCircle size={14} />
+                    {importError}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Column mapping */}
+            {importStep === "map" && (
+              <div className="space-y-4">
+                <p className="text-xs text-[var(--muted)]">
+                  وجدنا <strong className="text-[var(--foreground)]">{importTotal}</strong> زبون — طابق الأعمدة:
+                </p>
+
+                {/* Mapping fields */}
+                {([
+                  { key: "name",      label: "الاسم *"     },
+                  { key: "instagram", label: "انستغرام"    },
+                  { key: "phone",     label: "الهاتف"      },
+                  { key: "city",      label: "المحافظة"    },
+                  { key: "area",      label: "المنطقة"     },
+                ] as const).map(({ key, label }) => (
+                  <div key={key} className="grid grid-cols-2 items-center gap-3">
+                    <label className="text-[12px] font-medium text-[var(--foreground)]">{label}</label>
+                    <select
+                      value={importMapping[key]}
+                      onChange={(e) => setImportMapping((m) => ({ ...m, [key]: e.target.value }))}
+                      className="h-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[12px] px-2 outline-none focus:border-[var(--accent)] transition-colors text-[var(--foreground)]"
+                    >
+                      <option value="">— تجاهل —</option>
+                      {importHeaders.map((h) => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                ))}
+
+                {/* Preview */}
+                {importPreview.length > 0 && importMapping.name && (
+                  <div className="rounded-xl overflow-hidden border border-[var(--border)]">
+                    <div className="px-3 py-1.5 bg-[var(--background)] text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">
+                      معاينة أول {importPreview.length} صفوف
+                    </div>
+                    <div className="divide-y divide-[var(--border)] max-h-40 overflow-y-auto">
+                      {importPreview.map((row, i) => (
+                        <div key={i} className="px-3 py-1.5 text-[11px] flex gap-3 text-[var(--foreground)]">
+                          <span className="font-medium truncate">{row[importMapping.name] || "—"}</span>
+                          {importMapping.phone && <span className="text-[var(--muted)] font-mono">{row[importMapping.phone] || ""}</span>}
+                          {importMapping.instagram && <span className="text-[var(--muted)]">{row[importMapping.instagram] || ""}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {importError && (
+                  <div className="flex items-center gap-2 text-sm text-red-500">
+                    <AlertCircle size={14} />{importError}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={resetImport}
+                    className="flex-1 h-9 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--surface-secondary)] transition-colors"
+                  >
+                    رجوع
+                  </button>
+                  <button
+                    onClick={handleImportSubmit}
+                    disabled={!importMapping.name || importingData}
+                    className="flex-1 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+                    style={{ background: "#c9a84c", color: "#111" }}
+                  >
+                    {importingData ? <Loader2 size={14} className="animate-spin mx-auto" /> : `استيراد ${importTotal} زبون`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Done */}
+            {importStep === "done" && importResult && (
+              <div className="flex flex-col items-center gap-4 py-4">
+                <CheckCircle2 size={40} style={{ color: "#22c55e" }} />
+                <div className="text-center">
+                  <p className="text-base font-bold text-[var(--foreground)]">تم الاستيراد بنجاح</p>
+                  <p className="text-sm text-[var(--muted)] mt-1">
+                    تم إضافة <strong className="text-green-500">{importResult.created}</strong> زبون
+                    {importResult.skipped > 0 && <> · تجاهل <strong className="text-[var(--muted)]">{importResult.skipped}</strong></>}
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setImportOpen(false); resetImport(); }}
+                  className="h-9 px-6 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+                  style={{ background: "#c9a84c", color: "#111" }}
+                >
+                  إغلاق
+                </button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
