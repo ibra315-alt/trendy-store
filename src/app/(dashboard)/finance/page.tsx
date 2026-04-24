@@ -3,25 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { formatIQD, formatUSD, formatTRY } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  DollarSign,
-  TrendingUp,
-  Truck,
-  Calculator,
-  MessageCircle,
-} from "lucide-react";
+import { ChevronDown, Users, Truck, TrendingDown, Wallet, MessageCircle } from "lucide-react";
 
 interface Order {
   id: string;
@@ -29,41 +11,215 @@ interface Order {
   sellingPrice: number;
   purchaseCost: number;
   deposit: number;
-  deliveryCost: number;
-  status: string;
   paymentStatus: string;
   phone: string | null;
-  batchId: string | null;
-  customer: {
-    id: string;
-    name: string;
-    phone: string | null;
-  } | null;
-  batch: {
-    id: string;
-    name: string;
-    shippingCost: number;
-  } | null;
+  customer: { id: string; name: string; phone: string | null } | null;
 }
 
 interface Batch {
   id: string;
   name: string;
+  status: string;
   shippingCost: number;
-  _count: { orders: number };
+  openDate: string;
+  orders: Order[];
 }
 
 interface Settings {
-  usdToTry: number;
   usdToIqd: number;
   tryToIqd: number;
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  open: "مفتوحة",
+  shipped: "شُحنت",
+  in_distribution: "قيد التوزيع",
+  completed: "مكتملة",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  open: "#3b82f6",
+  shipped: "#f97316",
+  in_distribution: "#a855f7",
+  completed: "#22c55e",
+};
+
+function num(n: number) {
+  return n.toLocaleString("en-IQ");
+}
+
+function InfoRow({ label, value, sub, valueColor }: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueColor?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[11px]" style={{ color: "var(--muted)" }}>{label}</span>
+      <span className="text-sm font-semibold tabular-nums" style={{ color: valueColor ?? "var(--foreground)" }}>{value}</span>
+      {sub && <span className="text-[10px]" style={{ color: "var(--muted)" }}>{sub}</span>}
+    </div>
+  );
+}
+
+function BatchCard({ batch, settings }: { batch: Batch; settings: Settings }) {
+  const [open, setOpen] = useState(false);
+  const { usdToIqd, tryToIqd } = settings;
+
+  const totalPurchaseTRY = batch.orders.reduce((s, o) => s + o.purchaseCost, 0);
+  const totalSellIQD = batch.orders.reduce((s, o) => s + o.sellingPrice, 0);
+  const totalDeposit = batch.orders.reduce((s, o) => s + o.deposit, 0);
+  const totalRemaining = batch.orders.reduce((s, o) => {
+    const owed = o.sellingPrice - o.deposit;
+    return s + (owed > 0 && o.paymentStatus !== "paid" ? owed : 0);
+  }, 0);
+
+  const shippingIQD = batch.shippingCost * usdToIqd;
+  const purchaseIQD = totalPurchaseTRY * tryToIqd;
+  const profit = totalSellIQD - purchaseIQD - shippingIQD;
+
+  const unpaidOrders = batch.orders.filter((o) => {
+    const owed = o.sellingPrice - o.deposit;
+    return owed > 0 && o.paymentStatus !== "paid";
+  });
+
+  const statusColor = STATUS_COLOR[batch.status] ?? "#6b7280";
+  const statusLabel = STATUS_LABEL[batch.status] ?? batch.status;
+
+  return (
+    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{batch.name}</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ background: statusColor + "22", color: statusColor }}>
+            {statusLabel}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
+            {new Date(batch.openDate).toLocaleDateString("ar-IQ", { day: "numeric", month: "short" })}
+          </span>
+          <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted)" }}>
+            <Users size={12} />
+            {batch.orders.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-px" style={{ background: "var(--border)" }}>
+        {/* Shipping */}
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow
+            label="أجرة الشحن"
+            value={`${num(Math.round(shippingIQD))} IQD`}
+            sub={`${formatUSD(batch.shippingCost)} × ${num(usdToIqd)}`}
+          />
+        </div>
+
+        {/* Purchase cost TRY */}
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow
+            label="مجموع الليرة (تكلفة)"
+            value={formatTRY(totalPurchaseTRY)}
+            sub={`≈ ${num(Math.round(purchaseIQD))} IQD`}
+          />
+        </div>
+
+        {/* Selling total IQD */}
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow
+            label="مجموع الدينار (بيع)"
+            value={`${num(totalSellIQD)} IQD`}
+          />
+        </div>
+
+        {/* Deposit collected */}
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow
+            label="العربون المحصل"
+            value={`${num(totalDeposit)} IQD`}
+            valueColor="#22c55e"
+          />
+        </div>
+
+        {/* Remaining */}
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow
+            label="المتبقي للتحصيل"
+            value={`${num(totalRemaining)} IQD`}
+            valueColor={totalRemaining > 0 ? "#ef4444" : "#22c55e"}
+          />
+        </div>
+
+        {/* Profit estimate */}
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow
+            label="الربح التقديري"
+            value={`${num(Math.round(profit))} IQD`}
+            valueColor={profit >= 0 ? "#22c55e" : "#ef4444"}
+            sub="بيع − تكلفة − شحن"
+          />
+        </div>
+      </div>
+
+      {/* Unpaid customers toggle */}
+      {unpaidOrders.length > 0 && (
+        <div>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium transition-colors hover:brightness-110"
+            style={{ color: "#ef4444", background: "rgba(239,68,68,0.06)", borderTop: "1px solid var(--border)" }}
+          >
+            <span>{unpaidOrders.length} زبون لم يكمل الدفع — متبقي {num(totalRemaining)} IQD</span>
+            <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+          </button>
+
+          {open && (
+            <div className="divide-y" style={{ borderTop: "1px solid var(--border)", borderColor: "var(--border)" }}>
+              {unpaidOrders.map((o) => {
+                const owed = o.sellingPrice - o.deposit;
+                const phone = o.customer?.phone ?? o.phone ?? "";
+                const wa = phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : null;
+                return (
+                  <div key={o.id} className="flex items-center justify-between px-4 py-2.5" dir="rtl">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
+                        {o.customer?.name ?? "غير معروف"}
+                      </span>
+                      <span className="text-[11px] truncate" style={{ color: "var(--muted)" }}>{o.productName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-sm font-bold tabular-nums" style={{ color: "#ef4444" }}>{num(owed)} IQD</span>
+                        <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)" }}>
+                          {o.paymentStatus === "partial" ? `عربون: ${num(o.deposit)} IQD` : "بدون عربون"}
+                        </span>
+                      </div>
+                      {wa && (
+                        <a href={wa} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center justify-center w-8 h-8 rounded-xl transition-colors hover:brightness-110"
+                          style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>
+                          <MessageCircle size={14} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FinancePage() {
   const { isAdmin } = useAuthStore();
-  const t = useT();
-  const paymentLabels: Record<string, string> = { ...t.orders.status };
-  const [orders, setOrders] = useState<Order[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,17 +227,13 @@ export default function FinancePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ordersRes, batchesRes, settingsRes] = await Promise.all([
-          fetch("/api/orders"),
+        const [batchesRes, settingsRes] = await Promise.all([
           fetch("/api/batches"),
           fetch("/api/settings"),
         ]);
-
-        if (ordersRes.ok) setOrders(await ordersRes.json());
         if (batchesRes.ok) setBatches(await batchesRes.json());
         if (settingsRes.ok) setSettings(await settingsRes.json());
-      } catch (err) {
-        console.error("Failed to fetch finance data:", err);
+      } catch {
       } finally {
         setLoading(false);
       }
@@ -92,7 +244,7 @@ export default function FinancePage() {
   if (!isAdmin()) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-muted-foreground">{t.settings.adminRequired}</p>
+        <p style={{ color: "var(--muted)" }}>صلاحية المسؤول مطلوبة.</p>
       </div>
     );
   }
@@ -100,214 +252,81 @@ export default function FinancePage() {
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-muted-foreground">{t.finance.loading}</p>
+        <p style={{ color: "var(--muted)" }}>جاري تحميل البيانات...</p>
       </div>
     );
   }
 
-  const { tryToIqd, usdToIqd } = settings;
+  const { usdToIqd, tryToIqd } = settings;
 
-  // Calculate finances
-  const paidOrders = orders.filter((o) => o.paymentStatus === "paid");
-  const totalRevenue = paidOrders.reduce((sum, o) => sum + o.sellingPrice, 0);
-
-  const totalCostsTRY = orders.reduce((sum, o) => sum + o.purchaseCost, 0);
-  const totalCostsIQD = totalCostsTRY * tryToIqd;
-
-  // Shipping costs per batch, distributed across orders
-  const batchMap = new Map(batches.map((b) => [b.id, b]));
-  const totalShippingUSD = batches.reduce((sum, b) => sum + b.shippingCost, 0);
+  // Overall totals across all batches
+  const allOrders = batches.flatMap((b) => b.orders);
+  const totalShippingUSD = batches.reduce((s, b) => s + b.shippingCost, 0);
   const totalShippingIQD = totalShippingUSD * usdToIqd;
-
-  const netProfit = totalRevenue - totalCostsIQD - totalShippingIQD;
-
-  // Outstanding debts: orders where customer still owes money
-  const debts = orders.filter((o) => {
+  const totalPurchaseTRY = allOrders.reduce((s, o) => s + o.purchaseCost, 0);
+  const totalSellIQD = allOrders.reduce((s, o) => s + o.sellingPrice, 0);
+  const totalRemaining = allOrders.reduce((s, o) => {
     const owed = o.sellingPrice - o.deposit;
-    return owed > 0 && o.paymentStatus !== "paid";
-  });
-
-  const totalDebt = debts.reduce(
-    (sum, o) => sum + (o.sellingPrice - o.deposit),
-    0
-  );
+    return s + (owed > 0 && o.paymentStatus !== "paid" ? owed : 0);
+  }, 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Calculator className="h-6 w-6" />
-          {t.finance.title}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {t.finance.subtitle}
-        </p>
-      </div>
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t.finance.stats.revenue}
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {formatIQD(totalRevenue)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t.finance.stats.revenueSub(paidOrders.length)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t.finance.stats.costs}
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-red-600">
-              {formatIQD(totalCostsIQD)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t.finance.stats.costsSub(formatTRY(totalCostsTRY), tryToIqd)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t.finance.stats.shipping}
-            </CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-orange-600">
-              {formatIQD(totalShippingIQD)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t.finance.stats.shippingSub(formatUSD(totalShippingUSD), usdToIqd)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t.finance.stats.profit}</CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p
-              className={`text-2xl font-bold ${
-                netProfit >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {formatIQD(netProfit)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t.finance.stats.profitSub}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Outstanding Debts */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t.finance.debts.title}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t.finance.debts.subtitle(debts.length, formatIQD(totalDebt))}
-              </p>
-            </div>
+    <div className="pb-8" dir="rtl">
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
+            <Truck size={12} />
+            إجمالي الشحن
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {debts.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground">
-                {t.finance.debts.empty}
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.finance.debts.colCustomer}</TableHead>
-                  <TableHead>{t.finance.debts.colProduct}</TableHead>
-                  <TableHead className="text-start">{t.finance.debts.colTotal}</TableHead>
-                  <TableHead className="text-start">{t.finance.debts.colDeposit}</TableHead>
-                  <TableHead className="text-start">{t.finance.debts.colOwed}</TableHead>
-                  <TableHead>{t.finance.debts.colPhone}</TableHead>
-                  <TableHead>{t.finance.debts.colPayment}</TableHead>
-                  <TableHead className="text-start">{t.finance.debts.colContact}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {debts.map((order) => {
-                  const owed = order.sellingPrice - order.deposit;
-                  const phone =
-                    order.customer?.phone || order.phone || "";
-                  const whatsappUrl = phone
-                    ? `https://wa.me/${phone.replace(/[^0-9]/g, "")}`
-                    : null;
+          <span className="text-base font-bold tabular-nums" style={{ color: "var(--foreground)" }}>{num(Math.round(totalShippingIQD))} IQD</span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{formatUSD(totalShippingUSD)} — {batches.length} شحنة</span>
+        </div>
 
-                  return (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        {order.customer?.name || t.finance.debts.unknown}
-                      </TableCell>
-                      <TableCell>{order.productName}</TableCell>
-                      <TableCell className="text-start">
-                        {formatIQD(order.sellingPrice)}
-                      </TableCell>
-                      <TableCell className="text-start">
-                        {formatIQD(order.deposit)}
-                      </TableCell>
-                      <TableCell className="text-start font-semibold text-red-600">
-                        {formatIQD(owed)}
-                      </TableCell>
-                      <TableCell>{phone || "-"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            order.paymentStatus === "partial"
-                              ? "warning"
-                              : "destructive"
-                          }
-                        >
-                          {paymentLabels[order.paymentStatus] || order.paymentStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-start">
-                        {whatsappUrl ? (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground"
-                          >
-                            <MessageCircle className="h-4 w-4 text-green-600" />
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
+            <TrendingDown size={12} />
+            إجمالي التكلفة
+          </div>
+          <span className="text-base font-bold tabular-nums" style={{ color: "var(--foreground)" }}>{formatTRY(totalPurchaseTRY)}</span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>≈ {num(Math.round(totalPurchaseTRY * tryToIqd))} IQD</span>
+        </div>
+
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
+            <Wallet size={12} />
+            إجمالي البيع
+          </div>
+          <span className="text-base font-bold tabular-nums" style={{ color: "#22c55e" }}>{num(totalSellIQD)} IQD</span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{allOrders.length} طلب</span>
+        </div>
+
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
+            <Users size={12} />
+            المتبقي للتحصيل
+          </div>
+          <span className="text-base font-bold tabular-nums" style={{ color: totalRemaining > 0 ? "#ef4444" : "#22c55e" }}>
+            {num(totalRemaining)} IQD
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+            {allOrders.filter((o) => o.paymentStatus !== "paid").length} طلب غير مكتمل
+          </span>
+        </div>
+      </div>
+
+      {/* Per-batch cards */}
+      <div className="flex flex-col gap-4">
+        {batches.length === 0 ? (
+          <div className="flex items-center justify-center h-40 rounded-2xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <p style={{ color: "var(--muted)" }}>لا توجد شحنات بعد.</p>
+          </div>
+        ) : (
+          batches.map((batch) => (
+            <BatchCard key={batch.id} batch={batch} settings={settings} />
+          ))
+        )}
+      </div>
     </div>
   );
 }
