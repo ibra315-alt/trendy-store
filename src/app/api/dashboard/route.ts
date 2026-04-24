@@ -6,6 +6,7 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  try {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -100,4 +101,9 @@ export async function GET() {
     dailyStats,
     statusCounts: statusGroups.map((g) => ({ status: g.status, count: g._count.id })),
   });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[dashboard] DB error:", msg);
+    return NextResponse.json({ error: "db_error", detail: msg }, { status: 500 });
+  }
 }
