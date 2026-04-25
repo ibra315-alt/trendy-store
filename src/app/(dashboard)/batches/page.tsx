@@ -430,32 +430,29 @@ function BatchOrdersModal({
                     ) : (
                       <div className="p-3 space-y-3">
 
-                        {/* Images */}
+                        {/* Images with color/size label beneath each */}
                         {allImgs.length > 0 && (
                           <div className="flex gap-2 overflow-x-auto pb-1">
                             {allImgs.map((img, i) => (
-                              <button key={i} type="button" onClick={() => setPreviewImg(img)} className="shrink-0">
-                                <img
-                                  src={img} alt=""
-                                  className="h-20 w-20 rounded-xl object-cover border border-[var(--border)] hover:opacity-80 transition-opacity cursor-zoom-in"
-                                />
-                              </button>
+                              <div key={i} className="shrink-0 flex flex-col items-center gap-1">
+                                <button type="button" onClick={() => setPreviewImg(img)}>
+                                  <img
+                                    src={img} alt=""
+                                    className="h-20 w-20 rounded-xl object-cover border border-[var(--border)] hover:opacity-80 transition-opacity cursor-zoom-in"
+                                  />
+                                </button>
+                                {(order.color || (order.size && showSize)) && (
+                                  <span className="text-[10px] text-center text-[var(--muted)] leading-tight max-w-[80px] truncate">
+                                    {[order.color, showSize ? order.size : null].filter(Boolean).join(" · ")}
+                                  </span>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
 
-                        {/* Info chips: color · size · total */}
+                        {/* Info chips: total */}
                         <div className="flex flex-wrap gap-1.5 items-center">
-                          {order.color && (
-                            <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)]">
-                              اللون · <strong>{order.color}</strong>
-                            </span>
-                          )}
-                          {order.size && showSize && (
-                            <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)]">
-                              المقاس · <strong>{order.size}</strong>
-                            </span>
-                          )}
                           <span className="text-[11px] px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 font-bold ms-auto">
                             {formatIQD(total)}
                           </span>
