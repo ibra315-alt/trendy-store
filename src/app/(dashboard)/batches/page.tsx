@@ -442,25 +442,28 @@ function BatchOrdersModal({
                         {/* Images with color/size label beneath each */}
                         {imgDetails.length > 0 && (
                           <div className="flex gap-2 overflow-x-auto pb-1">
-                            {imgDetails.map((detail, i) => {
-                              const itemShowSize = detail.productType !== "Bag";
-                              const label = [detail.color, itemShowSize ? detail.size : null].filter(Boolean).join(" · ");
-                              return (
-                                <div key={i} className="shrink-0 flex flex-col items-center gap-1">
-                                  <button type="button" onClick={() => setPreviewImg(detail.img)}>
-                                    <img
-                                      src={detail.img} alt=""
-                                      className="h-20 w-20 rounded-xl object-cover border border-[var(--border)] hover:opacity-80 transition-opacity cursor-zoom-in"
-                                    />
-                                  </button>
-                                  {label && (
-                                    <span className="text-[10px] text-center text-[var(--muted)] leading-tight max-w-[80px] truncate">
-                                      {label}
+                            {imgDetails.map((detail, i) => (
+                              <div key={i} className="shrink-0 flex flex-col items-center gap-1">
+                                <button type="button" onClick={() => setPreviewImg(detail.img)}>
+                                  <img
+                                    src={detail.img} alt=""
+                                    className="h-20 w-20 rounded-xl object-cover border border-[var(--border)] hover:opacity-80 transition-opacity cursor-zoom-in"
+                                  />
+                                </button>
+                                <div className="flex flex-col items-center max-w-[80px]">
+                                  {detail.color && (
+                                    <span className="text-[10px] text-center text-[var(--muted)] leading-tight truncate w-full text-center">
+                                      {detail.color}
+                                    </span>
+                                  )}
+                                  {detail.size && (
+                                    <span className="text-[10px] text-center text-[var(--muted)] leading-tight truncate w-full text-center">
+                                      {detail.size}
                                     </span>
                                   )}
                                 </div>
-                              );
-                            })}
+                              </div>
+                            ))}
                           </div>
                         )}
 
