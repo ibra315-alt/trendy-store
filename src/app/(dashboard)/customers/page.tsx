@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/store/auth";
 import { useCustomerFilterStore } from "@/store/customer-filter";
 import { formatIQD } from "@/lib/utils";
@@ -157,8 +157,6 @@ export default function CustomersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchInstagramName = async (handle: string) => {
     if (!handle || handle.length < 2) return;
@@ -346,16 +344,6 @@ export default function CustomersPage() {
       if (res.ok) setSelectedCustomer(await res.json());
     } catch (err) { console.error("Fetch customer detail error:", err); }
     finally { setDetailLoading(false); }
-  };
-
-  const handleRowTouchStart = (customerId: string) => {
-    pressTimerRef.current = setTimeout(() => {
-      setSelectedIds((prev) => { const next = new Set(prev); next.add(customerId); return next; });
-    }, 500);
-  };
-
-  const handleRowTouchEnd = () => {
-    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
   };
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
@@ -550,18 +538,11 @@ export default function CustomersPage() {
               const phones = parsePhones(customer.phone);
               const isSelected = selectedIds.has(customer.id);
               const selectionMode = selectedIds.size > 0;
-              const showCb = isSelected || selectionMode || hoveredId === customer.id;
               return (
                 <div
                   key={customer.id}
-                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors"
+                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--surface-secondary)] cursor-pointer group transition-colors"
                   dir="ltr"
-                  onMouseEnter={() => setHoveredId(customer.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  onTouchStart={() => handleRowTouchStart(customer.id)}
-                  onTouchEnd={handleRowTouchEnd}
-                  onTouchMove={handleRowTouchEnd}
-                  onContextMenu={(e) => e.preventDefault()}
                   onClick={() => {
                     if (selectionMode) {
                       setSelectedIds((prev) => { const next = new Set(prev); if (next.has(customer.id)) next.delete(customer.id); else next.add(customer.id); return next; });
@@ -571,7 +552,7 @@ export default function CustomersPage() {
                   }}
                 >
                   <div
-                    className={`shrink-0 flex items-center transition-opacity ${showCb ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                    className={`shrink-0 flex items-center transition-opacity ${isSelected || selectionMode ? "opacity-100" : "opacity-20 group-hover:opacity-100"}`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
@@ -582,7 +563,7 @@ export default function CustomersPage() {
                         if (next.has(customer.id)) next.delete(customer.id); else next.add(customer.id);
                         return next;
                       })}
-                      className="w-3.5 h-3.5 rounded cursor-pointer accent-[var(--accent)]"
+                      className="w-4 h-4 cursor-pointer accent-[var(--accent)]"
                     />
                   </div>
                   <div className="w-[110px] sm:w-[140px] shrink-0">
@@ -610,7 +591,7 @@ export default function CustomersPage() {
                     )}
                   </div>
                   <div
-                    className={`hidden sm:flex items-center gap-0.5 transition-opacity shrink-0 w-16 justify-end ${hoveredId === customer.id ? "opacity-100" : "opacity-0"}`}
+                    className="hidden sm:flex items-center gap-0.5 transition-opacity shrink-0 w-16 justify-end opacity-0 group-hover:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
