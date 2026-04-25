@@ -570,8 +570,6 @@ export default function BatchesPage() {
   const [saving, setSaving] = useState(false);
   const [viewingBatch, setViewingBatch] = useState<Batch | null>(null);
   const [statusDropBatchId, setStatusDropBatchId] = useState<string | null>(null);
-  const [autoGrouping, setAutoGrouping] = useState(false);
-  const [autoGroupResult, setAutoGroupResult] = useState<{ created: number; assigned: number; message?: string } | null>(null);
   const statusDropRef = useRef<HTMLDivElement>(null);
 
   const { statusFilter, setCounts } = useBatchFilterStore();
@@ -613,21 +611,6 @@ export default function BatchesPage() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  async function handleAutoGroup() {
-    if (!confirm("سيتم تنظيم جميع الطلبات غير المصنّفة في شحنات شهرية تلقائياً. هل تريد المتابعة؟")) return;
-    setAutoGrouping(true);
-    setAutoGroupResult(null);
-    try {
-      const res = await fetch("/api/batches/auto-group", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        setAutoGroupResult(data);
-        fetchData();
-      }
-    } catch { /* ignore */ }
-    setAutoGrouping(false);
-  }
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -741,32 +724,6 @@ export default function BatchesPage() {
 
   return (
     <div className="space-y-4">
-
-      {/* Auto-group banner */}
-      {isAdmin() && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)]" dir="rtl">
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-[var(--foreground)]">تنظيم تلقائي حسب الشهر</p>
-            <p className="text-[11px] text-[var(--muted)] mt-0.5">يصنّف جميع الطلبات غير المرتبطة بشحنة في شحنات شهرية (حزيران 2023، نيسان 2024…)</p>
-          </div>
-          {autoGroupResult && (
-            <span className="text-[11px] text-green-500 shrink-0">
-              {autoGroupResult.message
-                ? autoGroupResult.message
-                : `✓ أُنشئت ${autoGroupResult.created} شحنة · ${autoGroupResult.assigned} طلب`}
-            </span>
-          )}
-          <button
-            onClick={handleAutoGroup}
-            disabled={autoGrouping}
-            className="flex items-center gap-1.5 h-8 px-4 rounded-xl text-[12px] font-semibold shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50 cursor-pointer"
-            style={{ background: "#c9a84c", color: "#111" }}
-          >
-            {autoGrouping ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
-            {autoGrouping ? "جاري التنظيم..." : "تنظيم الآن"}
-          </button>
-        </div>
-      )}
 
       {/* Batches Grid */}
       {batches.length === 0 ? (
