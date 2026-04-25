@@ -499,9 +499,6 @@ export default function CustomersPage() {
                     <p className="text-[13px] font-semibold text-[var(--foreground)] truncate">
                       {customer.name}
                     </p>
-                    {customer.instagram && (
-                      <p className="text-[11px] text-[var(--muted)] truncate">@{customer.instagram.replace(/^@/, "")}</p>
-                    )}
                   </div>
                   <div className="flex-1 text-center">
                     {customer.city ? (
