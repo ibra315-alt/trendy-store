@@ -740,7 +740,7 @@ export default function BatchesPage() {
             const totalPurchaseTRY = batch.orders.reduce((s, o) => s + o.purchaseCost, 0);
             const totalSellingIQD  = batch.orders.reduce((s, o) => s + o.sellingPrice, 0);
             const sc = STATUS_COLORS[batch.status] ?? STATUS_COLORS.open;
-            const barColor = pct === 100 ? "#22c55e" : pct > 50 ? "#3b82f6" : "#f97316";
+            const barColor = pct === 100 ? "#22c55e" : sc.text;
 
             return (
               <div
@@ -753,53 +753,55 @@ export default function BatchesPage() {
                   zIndex: statusDropBatchId === batch.id ? 20 : "auto",
                 }}
               >
-                {/* ── Dark header ── */}
+                {/* ── Header ── */}
                 <div
-                  className="px-4 py-3 flex items-center justify-between gap-2 rounded-t-2xl"
-                  style={{ background: "linear-gradient(135deg,#0f172a 0%,#1a2e4a 100%)" }}
+                  className="px-4 pb-3 rounded-t-2xl bg-[var(--surface)]"
+                  style={{ borderTop: `3px solid ${sc.text}` }}
                 >
-                  <div className="min-w-0">
-                    <p className="text-white font-bold text-sm leading-tight truncate">{batch.name}</p>
-                    <p className="text-slate-400 text-[11px] mt-0.5 font-mono">
-                      {format(new Date(batch.openDate), "dd/MM/yyyy")}
-                      {batch.closeDate && (
-                        <span> → {format(new Date(batch.closeDate), "dd/MM/yyyy")}</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="relative shrink-0" ref={statusDropBatchId === batch.id ? statusDropRef : undefined}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setStatusDropBatchId(statusDropBatchId === batch.id ? null : batch.id); }}
-                      className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-all hover:brightness-125"
-                      style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}
-                    >
-                      {batchStatusBadge(batch.status, t).props.children}
-                      <ChevronDown size={9} style={{ transform: statusDropBatchId === batch.id ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
-                    </button>
-                    {statusDropBatchId === batch.id && (
-                      <div
-                        className="absolute left-0 top-full mt-1.5 z-[100] min-w-[148px] rounded-xl shadow-2xl overflow-hidden py-1"
-                        style={{ background: "#1e1e2e", border: "1px solid #333" }}
-                        dir="rtl"
+                  <div className="flex items-center justify-between gap-2 pt-3">
+                    <div className="min-w-0">
+                      <p className="text-[var(--foreground)] font-bold text-sm leading-tight truncate">{batch.name}</p>
+                      <p className="text-[var(--muted)] text-[11px] mt-0.5 font-mono">
+                        {format(new Date(batch.openDate), "dd/MM/yyyy")}
+                        {batch.closeDate && (
+                          <span> → {format(new Date(batch.closeDate), "dd/MM/yyyy")}</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="relative shrink-0" ref={statusDropBatchId === batch.id ? statusDropRef : undefined}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setStatusDropBatchId(statusDropBatchId === batch.id ? null : batch.id); }}
+                        className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-all hover:brightness-125"
+                        style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}
                       >
-                        {STATUS_OPTIONS.map((opt) => {
-                          const oc = STATUS_COLORS[opt.value] ?? STATUS_COLORS.open;
-                          const isCurrent = batch.status === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              onClick={() => quickUpdateStatus(batch.id, opt.value)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-right"
-                              style={{ background: isCurrent ? oc.bg : "transparent", color: isCurrent ? oc.text : "#ccc" }}
-                            >
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: oc.text }} />
-                              {opt.label}
-                              {isCurrent && <span className="mr-auto text-[10px] opacity-60">✓</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                        {batchStatusBadge(batch.status, t).props.children}
+                        <ChevronDown size={9} style={{ transform: statusDropBatchId === batch.id ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
+                      </button>
+                      {statusDropBatchId === batch.id && (
+                        <div
+                          className="absolute left-0 top-full mt-1.5 z-[100] min-w-[148px] rounded-xl shadow-2xl overflow-hidden py-1"
+                          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                          dir="rtl"
+                        >
+                          {STATUS_OPTIONS.map((opt) => {
+                            const oc = STATUS_COLORS[opt.value] ?? STATUS_COLORS.open;
+                            const isCurrent = batch.status === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                onClick={() => quickUpdateStatus(batch.id, opt.value)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-right hover:bg-[var(--surface-secondary)]"
+                                style={{ background: isCurrent ? oc.bg : "transparent", color: isCurrent ? oc.text : "var(--foreground)" }}
+                              >
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: oc.text }} />
+                                {opt.label}
+                                {isCurrent && <span className="mr-auto text-[10px] opacity-60">✓</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -848,14 +850,10 @@ export default function BatchesPage() {
                 </div>
 
                 {/* ── Footer actions ── */}
-                <div
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-b-2xl"
-                  style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}
-                >
+                <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-b-2xl border-t border-[var(--border)] bg-[var(--background)]">
                   <button
                     onClick={() => setViewingBatch(batch)}
-                    className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-xl text-xs font-semibold transition-all hover:brightness-110"
-                    style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.25)" }}
+                    className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-xl text-xs font-medium transition-colors bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--foreground)] border border-[var(--border)]"
                   >
                     <Eye size={13} />
                     {t.batches.card.viewOrders}
@@ -863,8 +861,7 @@ export default function BatchesPage() {
                   <button
                     onClick={() => openEdit(batch)}
                     title={t.batches.card.edit}
-                    className="flex items-center justify-center h-8 w-8 rounded-xl transition-all hover:brightness-110"
-                    style={{ background: "rgba(234,179,8,0.12)", color: "#ca8a04", border: "1px solid rgba(234,179,8,0.25)" }}
+                    className="flex items-center justify-center h-8 w-8 rounded-xl transition-colors bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]"
                   >
                     <Pencil size={13} />
                   </button>
@@ -872,8 +869,7 @@ export default function BatchesPage() {
                     <button
                       onClick={() => handleDelete(batch.id)}
                       title={t.batches.card.delete}
-                      className="flex items-center justify-center h-8 w-8 rounded-xl transition-all hover:brightness-110"
-                      style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
+                      className="flex items-center justify-center h-8 w-8 rounded-xl transition-colors bg-[var(--surface)] hover:bg-red-500/10 hover:text-red-500 text-[var(--muted)] border border-[var(--border)]"
                     >
                       <Trash2 size={13} />
                     </button>
