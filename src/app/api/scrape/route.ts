@@ -22,12 +22,13 @@ const PROXY_URL = "https://trendy-proxy.ibra-315.workers.dev";
 
 // Turkish sites that work with direct fetch (no IP blocking)
 const DIRECT_FETCH_HOSTS = [
-  "shulebags.com", "ticimax.cloud",
+  "shulebags.com", "ticimax.cloud", "tiamoda.com",
   "trendyol.com", "hepsiburada.com", "n11.com",
   "koton.com", "lcwaikiki.com", "defacto.com.tr",
   "boyner.com.tr", "morhipo.com", "markafoni.com",
   "modanisa.com", "lidyana.com", "fashfed.com",
   "pttavm.com", "gittigidiyor.com", "ciceksepeti.com",
+  "nisantasishoes.com",
 ];
 
 async function fetchHtml(url: string): Promise<string> {
@@ -69,11 +70,17 @@ export async function POST(req: NextRequest) {
     const parsedUrl = new URL(url);
     const hostname = parsedUrl.hostname.toLowerCase();
 
-    // Extract size from URL query parameters (e.g. ?Numara=37 or ?Beden=M)
+    // Extract size and color from URL query parameters
+    // e.g. ?Numara=37  ?Beden=S  ?Renk=Kahve
     const sizeParamNames = ["numara", "beden", "size", "beden_id", "numara_id"];
     for (const param of sizeParamNames) {
-      const val = parsedUrl.searchParams.get(param) || parsedUrl.searchParams.get(param.charAt(0).toUpperCase() + param.slice(1));
+      const val = parsedUrl.searchParams.get(param) ?? parsedUrl.searchParams.get(param[0].toUpperCase() + param.slice(1));
       if (val?.trim()) { result.sizes = [val.trim()]; break; }
+    }
+    const colorParamNames = ["renk", "color", "colour", "renk_id", "color_id"];
+    for (const param of colorParamNames) {
+      const val = parsedUrl.searchParams.get(param) ?? parsedUrl.searchParams.get(param[0].toUpperCase() + param.slice(1));
+      if (val?.trim()) { result.colors = [{ name: val.trim() }]; break; }
     }
 
     // ──────────────────────────────────────────────
