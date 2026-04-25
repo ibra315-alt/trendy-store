@@ -94,7 +94,7 @@ async function main() {
           name,
           openDate,
           closeDate,
-          status: "closed",
+          status: "completed",
           createdAt: openDate,
         },
       });
