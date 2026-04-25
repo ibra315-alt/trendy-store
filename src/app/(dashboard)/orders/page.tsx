@@ -219,7 +219,7 @@ const EMPTY_FORM: OrderFormData = {
   deliveryCost: "",
   deposit: "",
   status: "new",
-  paymentStatus: "unpaid",
+  paymentStatus: "paid",
   notes: "",
 };
 
@@ -485,6 +485,14 @@ export default function OrdersPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // If batches finish loading after the new-order dialog is already open, fill in the batch
+  useEffect(() => {
+    if (defaultBatchId && dialogOpen && !editingOrder) {
+      setForm((prev) => prev.batchId ? prev : { ...prev, batchId: defaultBatchId });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultBatchId]);
 
   const { activeTab, setActiveTab, search, setSearch } = useOrderFilterStore();
   const [searchDebounced, setSearchDebounced] = useState("");
