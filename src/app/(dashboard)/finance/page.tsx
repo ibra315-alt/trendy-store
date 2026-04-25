@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
-import { useRouter } from "next/navigation";
-import { formatUSD, formatTRY } from "@/lib/utils";
-import { ChevronDown, Users, Truck, TrendingDown, Wallet, MessageCircle, Check, ArrowRightLeft, MapPin, TrendingUp } from "lucide-react";
+import { formatIQD, formatUSD, formatTRY } from "@/lib/utils";
+import { ChevronDown, Users, Truck, TrendingDown, Wallet, MessageCircle, Check, ArrowRightLeft } from "lucide-react";
 
 interface Order {
   id: string;
@@ -12,7 +11,6 @@ interface Order {
   productType: string;
   sellingPrice: number;
   purchaseCost: number;
-  deliveryCost: number;
   deposit: number;
   paymentStatus: string;
   phone: string | null;
@@ -57,6 +55,18 @@ function num(n: number) {
   return n.toLocaleString("en-IQ");
 }
 
+function InfoRow({ label, value, sub, valueColor }: {
+  label: string; value: string; sub?: string; valueColor?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[11px]" style={{ color: "var(--muted)" }}>{label}</span>
+      <span className="text-sm font-semibold tabular-nums" style={{ color: valueColor ?? "var(--foreground)" }}>{value}</span>
+      {sub && <span className="text-[10px]" style={{ color: "var(--muted)" }}>{sub}</span>}
+    </div>
+  );
+}
+
 function BatchCard({
   batch,
   settings,
@@ -78,29 +88,17 @@ function BatchCard({
   // Keep local orders in sync if batch.orders changes externally
   useEffect(() => { setOrders(batch.orders); }, [batch.orders]);
 
-  const totalPurchaseTRY  = orders.reduce((s, o) => s + o.purchaseCost, 0);
-  const totalSellIQD      = orders.reduce((s, o) => s + o.sellingPrice, 0);
-  const totalDeliveryIQD  = orders.reduce((s, o) => s + o.deliveryCost, 0);
-  const totalDeposit      = orders.reduce((s, o) => s + o.deposit, 0);
-  const totalRemaining    = orders.reduce((s, o) => {
+  const totalPurchaseTRY = orders.reduce((s, o) => s + o.purchaseCost, 0);
+  const totalSellIQD     = orders.reduce((s, o) => s + o.sellingPrice, 0);
+  const totalDeposit     = orders.reduce((s, o) => s + o.deposit, 0);
+  const totalRemaining   = orders.reduce((s, o) => {
     const owed = o.sellingPrice - o.deposit;
     return s + (owed > 0 && o.paymentStatus !== "paid" ? owed : 0);
   }, 0);
 
-  const purchaseIQD     = totalPurchaseTRY * tryToIqd;
-  const purchaseUSD     = usdToIqd > 0 ? purchaseIQD / usdToIqd : 0;
-  const sellUSD         = usdToIqd > 0 ? totalSellIQD / usdToIqd : 0;
-  const deliveryUSD     = usdToIqd > 0 ? totalDeliveryIQD / usdToIqd : 0;
-  const depositUSD      = usdToIqd > 0 ? totalDeposit / usdToIqd : 0;
-  const remainingUSD    = usdToIqd > 0 ? totalRemaining / usdToIqd : 0;
-  const profit          = totalSellIQD - totalDeliveryIQD - purchaseIQD;
-  const profitUSD       = usdToIqd > 0 ? profit / usdToIqd : 0;
-  const deliveryGroups  = Object.entries(
-    orders.reduce((acc, o) => {
-      if (o.deliveryCost > 0) { const k = String(o.deliveryCost); acc[k] = (acc[k] || 0) + 1; }
-      return acc;
-    }, {} as Record<string, number>)
-  ).sort(([a], [b]) => Number(b) - Number(a));
+  const shippingIQD = batch.shippingCost * usdToIqd;
+  const purchaseIQD = totalPurchaseTRY * tryToIqd;
+  const profit      = totalSellIQD - purchaseIQD - shippingIQD;
 
   const unpaidCount  = orders.filter((o) => o.paymentStatus !== "paid").length;
   const statusColor  = STATUS_COLOR[batch.status] ?? "#6b7280";
@@ -156,58 +154,27 @@ function BatchCard({
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-px" style={{ background: "var(--border)" }}>
-        {/* TRY cost + IQD + USD faint */}
-        <div className="px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)" }}>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>تكلفة الشراء</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>{formatTRY(totalPurchaseTRY)}</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)" }}>≈ {num(Math.round(purchaseIQD))} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(purchaseUSD * 100) / 100)}</span>
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow label="أجرة الشحن" value={`${num(Math.round(shippingIQD))} IQD`}
+            sub={`${formatUSD(batch.shippingCost)} × ${num(usdToIqd)}`} />
         </div>
-
-        {/* IQD selling + USD faint */}
-        <div className="px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)" }}>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>إجمالي البيع</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: "#22c55e" }}>{num(totalSellIQD)} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(sellUSD * 100) / 100)}</span>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{orders.length} طلب</span>
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow label="مجموع الليرة (تكلفة)" value={formatTRY(totalPurchaseTRY)}
+            sub={`≈ ${num(Math.round(purchaseIQD))} IQD`} />
         </div>
-
-        {/* Delivery fees + breakdown */}
-        <div className="px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)" }}>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>أجور التوصيل</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: "#f59e0b" }}>{num(Math.round(totalDeliveryIQD))} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(deliveryUSD * 100) / 100)}</span>
-          {deliveryGroups.length > 0
-            ? deliveryGroups.map(([cost, count]) => (
-                <span key={cost} className="text-[10px] tabular-nums" style={{ color: "var(--muted)" }}>
-                  {num(Number(cost))} × {count} طلب
-                </span>
-              ))
-            : <span className="text-[10px]" style={{ color: "var(--muted)" }}>لا يوجد توصيل</span>
-          }
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow label="مجموع الدينار (بيع)" value={`${num(totalSellIQD)} IQD`} />
         </div>
-
-        {/* Deposit + USD faint */}
-        <div className="px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)" }}>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>العربون المحصل</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: "#22c55e" }}>{num(totalDeposit)} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(depositUSD * 100) / 100)}</span>
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow label="العربون المحصل" value={`${num(totalDeposit)} IQD`} valueColor="#22c55e" />
         </div>
-
-        {/* Remaining + USD faint */}
-        <div className="px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)" }}>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>المتبقي للتحصيل</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: totalRemaining > 0 ? "#ef4444" : "#22c55e" }}>{num(totalRemaining)} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(remainingUSD * 100) / 100)}</span>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{unpaidCount} طلب غير مكتمل</span>
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow label="المتبقي للتحصيل" value={`${num(totalRemaining)} IQD`}
+            valueColor={totalRemaining > 0 ? "#ef4444" : "#22c55e"} />
         </div>
-
-        {/* Profit + USD faint */}
-        <div className="px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)" }}>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>الربح التقديري</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: profit >= 0 ? "#22c55e" : "#ef4444" }}>{num(Math.round(profit))} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(profitUSD * 100) / 100)}</span>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>بيع − توصيل − تكلفة</span>
+        <div className="px-4 py-3" style={{ background: "var(--surface)" }}>
+          <InfoRow label="الربح التقديري" value={`${num(Math.round(profit))} IQD`}
+            valueColor={profit >= 0 ? "#22c55e" : "#ef4444"} sub="بيع − تكلفة − شحن" />
         </div>
       </div>
 
@@ -347,38 +314,26 @@ function BatchCard({
 
 export default function FinancePage() {
   const { isAdmin } = useAuthStore();
-  const router = useRouter();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const [batchesRes, settingsRes] = await Promise.all([
-        fetch("/api/batches"),
-        fetch("/api/settings"),
-      ]);
-      if (batchesRes.status === 401 || settingsRes.status === 401) {
-        router.push("/login");
-        return;
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [batchesRes, settingsRes] = await Promise.all([
+          fetch("/api/batches"),
+          fetch("/api/settings"),
+        ]);
+        if (batchesRes.ok) setBatches(await batchesRes.json());
+        if (settingsRes.ok) setSettings(await settingsRes.json());
+      } catch {
+      } finally {
+        setLoading(false);
       }
-      if (!batchesRes.ok || !settingsRes.ok) {
-        setFetchError("فشل تحميل البيانات — تحقق من الاتصال وأعد المحاولة");
-        return;
-      }
-      setBatches(await batchesRes.json());
-      setSettings(await settingsRes.json());
-    } catch {
-      setFetchError("تعذّر الاتصال بالخادم — تحقق من الاتصال وأعد المحاولة");
-    } finally {
-      setLoading(false);
     }
-  }, [router]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+    fetchData();
+  }, []);
 
   const handleOrdersChange = (batchId: string, updatedOrders: Order[]) => {
     setBatches((prev) =>
@@ -394,7 +349,7 @@ export default function FinancePage() {
     );
   }
 
-  if (loading) {
+  if (loading || !settings) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <p style={{ color: "var(--muted)" }}>جاري تحميل البيانات...</p>
@@ -402,116 +357,52 @@ export default function FinancePage() {
     );
   }
 
-  if (fetchError || !settings) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 h-[60vh]">
-        <p className="text-sm" style={{ color: "var(--muted)" }}>{fetchError ?? "فشل تحميل البيانات"}</p>
-        <button
-          onClick={fetchData}
-          className="text-xs px-4 py-2 rounded-xl border hover:brightness-110 transition-all"
-          style={{ borderColor: "var(--border)", color: "var(--foreground)", background: "var(--surface)" }}
-        >
-          إعادة المحاولة
-        </button>
-      </div>
-    );
-  }
-
   const { usdToIqd, tryToIqd } = settings;
-  const allOrders          = batches.flatMap((b) => b.orders);
-  const totalShippingUSD   = batches.reduce((s, b) => s + b.shippingCost, 0);
-  const totalPurchaseTRY   = allOrders.reduce((s, o) => s + o.purchaseCost, 0);
-  const totalPurchaseIQD   = totalPurchaseTRY * tryToIqd;
-  const totalPurchaseUSD   = usdToIqd > 0 ? totalPurchaseIQD / usdToIqd : 0;
-  const totalDeliveryIQD   = allOrders.reduce((s, o) => s + o.deliveryCost, 0);
-  const totalDeliveryUSD   = usdToIqd > 0 ? totalDeliveryIQD / usdToIqd : 0;
-  const totalSellIQD       = allOrders.reduce((s, o) => s + o.sellingPrice, 0);
-  const totalSellUSD       = usdToIqd > 0 ? totalSellIQD / usdToIqd : 0;
-  const totalRemaining     = allOrders.reduce((s, o) => {
+  const allOrders        = batches.flatMap((b) => b.orders);
+  const totalShippingUSD = batches.reduce((s, b) => s + b.shippingCost, 0);
+  const totalShippingIQD = totalShippingUSD * usdToIqd;
+  const totalPurchaseTRY = allOrders.reduce((s, o) => s + o.purchaseCost, 0);
+  const totalSellIQD     = allOrders.reduce((s, o) => s + o.sellingPrice, 0);
+  const totalRemaining   = allOrders.reduce((s, o) => {
     const owed = o.sellingPrice - o.deposit;
     return s + (owed > 0 && o.paymentStatus !== "paid" ? owed : 0);
   }, 0);
-  const totalRemainingUSD  = usdToIqd > 0 ? totalRemaining / usdToIqd : 0;
-  const totalProfit        = totalSellIQD - totalDeliveryIQD - totalPurchaseIQD;
-  const totalProfitUSD     = usdToIqd > 0 ? totalProfit / usdToIqd : 0;
-  const allDeliveryGroups  = Object.entries(
-    allOrders.reduce((acc, o) => {
-      if (o.deliveryCost > 0) { const k = String(o.deliveryCost); acc[k] = (acc[k] || 0) + 1; }
-      return acc;
-    }, {} as Record<string, number>)
-  ).sort(([a], [b]) => Number(b) - Number(a));
 
   return (
     <div className="pb-8" dir="rtl">
       {/* Summary strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        {/* TRY cost + IQD + USD faint */}
-        <div className="rounded-2xl px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
+            <Truck size={12} />إجمالي الشحن
+          </div>
+          <span className="text-base font-bold tabular-nums" style={{ color: "var(--foreground)" }}>{num(Math.round(totalShippingIQD))} IQD</span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{formatUSD(totalShippingUSD)} — {batches.length} شحنة</span>
+        </div>
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
             <TrendingDown size={12} />إجمالي التكلفة
           </div>
           <span className="text-base font-bold tabular-nums" style={{ color: "var(--foreground)" }}>{formatTRY(totalPurchaseTRY)}</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)" }}>≈ {num(Math.round(totalPurchaseIQD))} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(totalPurchaseUSD * 100) / 100)}</span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>≈ {num(Math.round(totalPurchaseTRY * tryToIqd))} IQD</span>
         </div>
-
-        {/* Delivery fees + USD + breakdown */}
-        <div className="rounded-2xl px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
-            <MapPin size={12} />إجمالي التوصيل
-          </div>
-          <span className="text-base font-bold tabular-nums" style={{ color: "#f59e0b" }}>{num(Math.round(totalDeliveryIQD))} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(totalDeliveryUSD * 100) / 100)}</span>
-          {allDeliveryGroups.map(([cost, count]) => (
-            <span key={cost} className="text-[10px] tabular-nums" style={{ color: "var(--muted)" }}>
-              {num(Number(cost))} × {count} طلب
-            </span>
-          ))}
-        </div>
-
-        {/* IQD selling + USD faint */}
-        <div className="rounded-2xl px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
             <Wallet size={12} />إجمالي البيع
           </div>
           <span className="text-base font-bold tabular-nums" style={{ color: "#22c55e" }}>{num(totalSellIQD)} IQD</span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(totalSellUSD * 100) / 100)}</span>
           <span className="text-[10px]" style={{ color: "var(--muted)" }}>{allOrders.length} طلب</span>
         </div>
-
-        {/* Remaining + USD faint */}
-        <div className="rounded-2xl px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
             <Users size={12} />المتبقي للتحصيل
           </div>
           <span className="text-base font-bold tabular-nums" style={{ color: totalRemaining > 0 ? "#ef4444" : "#22c55e" }}>
             {num(totalRemaining)} IQD
           </span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(totalRemainingUSD * 100) / 100)}</span>
           <span className="text-[10px]" style={{ color: "var(--muted)" }}>
             {allOrders.filter((o) => o.paymentStatus !== "paid").length} طلب غير مكتمل
           </span>
-        </div>
-
-        {/* International shipping (reference only) */}
-        <div className="rounded-2xl px-4 py-3 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
-            <Truck size={12} />أجرة الشحن الدولي
-          </div>
-          <span className="text-base font-bold tabular-nums" style={{ color: "var(--foreground)" }}>{formatUSD(totalShippingUSD)}</span>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{batches.length} شحنة</span>
-        </div>
-
-        {/* Net profit + USD faint */}
-        <div className="rounded-2xl px-4 py-3 flex flex-col gap-0.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted)" }}>
-            <TrendingUp size={12} />صافي الربح
-          </div>
-          <span className="text-base font-bold tabular-nums" style={{ color: totalProfit >= 0 ? "#22c55e" : "#ef4444" }}>
-            {num(Math.round(totalProfit))} IQD
-          </span>
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--muted)", opacity: 0.6 }}>≈ {formatUSD(Math.round(totalProfitUSD * 100) / 100)}</span>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>بيع − توصيل − تكلفة</span>
         </div>
       </div>
 
