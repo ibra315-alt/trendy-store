@@ -778,7 +778,7 @@ export default function BatchesPage() {
                     </button>
                     {statusDropBatchId === batch.id && (
                       <div
-                        className="absolute right-0 top-full mt-1.5 z-[100] min-w-[148px] rounded-xl shadow-2xl overflow-hidden py-1"
+                        className="absolute left-0 top-full mt-1.5 z-[100] min-w-[148px] rounded-xl shadow-2xl overflow-hidden py-1"
                         style={{ background: "#1e1e2e", border: "1px solid #333" }}
                         dir="rtl"
                       >
