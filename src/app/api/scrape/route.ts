@@ -66,7 +66,15 @@ export async function POST(req: NextRequest) {
     }
 
     const result: ScrapedProduct = { name: "" };
-    const hostname = new URL(url).hostname.toLowerCase();
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Extract size from URL query parameters (e.g. ?Numara=37 or ?Beden=M)
+    const sizeParamNames = ["numara", "beden", "size", "beden_id", "numara_id"];
+    for (const param of sizeParamNames) {
+      const val = parsedUrl.searchParams.get(param) || parsedUrl.searchParams.get(param.charAt(0).toUpperCase() + param.slice(1));
+      if (val?.trim()) { result.sizes = [val.trim()]; break; }
+    }
 
     // ──────────────────────────────────────────────
     // 1. Universal: OG tags + JSON-LD
