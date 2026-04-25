@@ -374,8 +374,8 @@ function BatchOrdersModal({
                       {order.size && order.productType !== "Bag" ? ` · ${order.size}` : ""}
                     </p>
                     {order.notes && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <FileText size={10} className="shrink-0 text-amber-500" />
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
                         <span className="text-[10px] text-[var(--muted)] truncate">{order.notes}</span>
                       </div>
                     )}

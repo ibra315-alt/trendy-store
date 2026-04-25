@@ -1257,8 +1257,16 @@ export default function OrdersPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap font-medium">
-                          {order.customer?.name || "-"}
+                        <TableCell className="font-medium">
+                          <div>
+                            <span className="whitespace-nowrap">{order.customer?.name || "-"}</span>
+                            {order.notes && (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                <span className="text-[11px] text-[var(--muted)] leading-snug">{order.notes}</span>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {PRODUCT_TYPE_LABELS[order.productType] || order.productType}
@@ -1599,7 +1607,7 @@ export default function OrdersPage() {
                       </div>
                       {order.notes && (
                         <div className="mt-1.5 flex items-start gap-1.5">
-                          <FileText size={11} className="shrink-0 text-amber-500 mt-0.5" />
+                          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0 mt-0.5" />
                           <p className="text-[11px] text-[var(--muted)] leading-snug">{order.notes}</p>
                         </div>
                       )}
