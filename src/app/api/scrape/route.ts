@@ -155,7 +155,22 @@ export async function POST(req: NextRequest) {
             const price = p.price?.sellingPrice?.value || p.price?.sellingPrice || p.price?.originalPrice?.value;
             if (price) result.price = String(price);
 
-            // Colors from variants
+            // Extract the current variant's color from attributes FIRST (specific to this URL)
+            let currentColor: string | null = resolveColor(p.color || p.colorName || "");
+            if (p.attributes) {
+              for (const attr of p.attributes) {
+                const key = (attr.key?.name || attr.name || "").toLowerCase();
+                const val = attr.value?.name || attr.value || "";
+                if (key.includes("renk") || key.includes("color")) {
+                  currentColor = resolveColor(val) || currentColor;
+                }
+                if (key.includes("beden") || key.includes("size") || key.includes("numara")) {
+                  if (!result.sizes?.length && val) result.sizes = [val];
+                }
+              }
+            }
+
+            // Colors from all variants (for the color picker list)
             if (p.allVariants || p.variants) {
               const variants = p.allVariants || p.variants;
               const colorMap = new Map<string, { name: string; image?: string }>();
@@ -163,7 +178,6 @@ export async function POST(req: NextRequest) {
 
               if (Array.isArray(variants)) {
                 for (const v of variants) {
-                  // Color
                   const colorName = resolveColor(v.colorName || v.color || v.attributeValue || "");
                   if (colorName && !colorMap.has(colorName)) {
                     colorMap.set(colorName, {
@@ -171,7 +185,6 @@ export async function POST(req: NextRequest) {
                       image: v.images?.[0] ? normalizeUrl(v.images[0]) : undefined,
                     });
                   }
-                  // Size
                   const sizeName = v.sizeName || v.size || v.barcodeName;
                   if (sizeName) sizeSet.add(sizeName);
                 }
@@ -181,22 +194,7 @@ export async function POST(req: NextRequest) {
               if (sizeSet.size > 0) result.sizes = [...sizeSet];
             }
 
-            // Try slicing attributes for colors/sizes
-            if (p.attributes) {
-              for (const attr of p.attributes) {
-                const key = (attr.key?.name || attr.name || "").toLowerCase();
-                const val = attr.value?.name || attr.value || "";
-                if (key.includes("renk") || key.includes("color")) {
-                  const c = resolveColor(val);
-                  if (c && !result.colors?.length) result.colors = [{ name: c }];
-                }
-                if (key.includes("beden") || key.includes("size") || key.includes("numara")) {
-                  if (!result.sizes?.length && val) result.sizes = [val];
-                }
-              }
-            }
-
-            // Color groups
+            // Color groups (other color variants)
             if (p.otherColors && Array.isArray(p.otherColors)) {
               const colors: { name: string; image?: string }[] = [];
               for (const c of p.otherColors) {
@@ -204,6 +202,12 @@ export async function POST(req: NextRequest) {
                 if (name) colors.push({ name, image: c.imageUrl ? normalizeUrl(c.imageUrl) : undefined });
               }
               if (colors.length > 0) result.colors = colors;
+            }
+
+            // Ensure the current page's specific color is always first
+            if (currentColor) {
+              const rest = (result.colors || []).filter(c => c.name.toLowerCase() !== currentColor!.toLowerCase());
+              result.colors = [{ name: currentColor }, ...rest];
             }
           }
         } catch { /* ignore */ }
