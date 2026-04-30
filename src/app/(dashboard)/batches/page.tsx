@@ -830,6 +830,18 @@ export default function BatchesPage() {
                       {t.batches.card.shipping.replace(":", "")}
                       <span className="font-semibold text-[var(--foreground)]">{formatUSD(batch.shippingCost)}</span>
                     </span>
+                    {batch.promotionCost > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
+                        {t.batches.dialog.promotionCost.replace(" (USD)", "")}:
+                        <span className="font-semibold">{formatUSD(batch.promotionCost)}</span>
+                      </span>
+                    )}
+                    {batch.expenses > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                        {t.batches.dialog.expenses.replace(" (USD)", "")}:
+                        <span className="font-semibold">{formatUSD(batch.expenses)}</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Progress bar */}
