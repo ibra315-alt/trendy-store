@@ -1037,9 +1037,9 @@ export default function OrdersPage() {
                 )}
               </>
             ) : (
-              <label className="relative flex-1 min-h-[100px] rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground cursor-pointer group hover:border-[var(--accent)]/50 transition-colors">
-                <ImageIcon className="h-7 w-7 opacity-20 group-hover:opacity-40 transition-opacity" />
-                <span className="mt-1 text-[11px] opacity-25 group-hover:opacity-50 transition-opacity select-none">+</span>
+              <label className="relative flex-1 min-h-[100px] rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[var(--accent)]/60 transition-colors" style={{ color: "var(--muted)" }}>
+                <ImageIcon className="h-6 w-6 opacity-30" />
+                <span className="flex items-center justify-center w-7 h-7 rounded-full border border-dashed text-lg leading-none opacity-40" style={{ borderColor: "currentColor" }}>+</span>
                 <input
                   type="file"
                   accept="image/*"
