@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db as prisma } from "@/lib/db";
 
 // POST /api/warehouse/[id]/variants — add variant to product
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

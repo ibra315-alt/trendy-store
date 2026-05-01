@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db as prisma } from "@/lib/db";
 
 // PUT /api/warehouse/[id] — update product name/type/description
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
