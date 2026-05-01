@@ -134,27 +134,23 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: string; 
 }
 
 function DonutChart({ statusCounts }: { statusCounts: StatusCount[] }) {
-  const segments = statusCounts
-    .filter((s) => s.count > 0)
-    .map((s) => ({
-      ...s,
-      label: STATUS_META[s.status]?.label ?? s.status,
-      color: STATUS_META[s.status]?.donut ?? "#888",
-    }))
-    .sort((a, b) => b.count - a.count);
+  const countMap = Object.fromEntries(statusCounts.map((s) => [s.status, s.count]));
+  const total = statusCounts.reduce((s, x) => s + x.count, 0);
 
-  const total = segments.reduce((s, x) => s + x.count, 0);
+  // All statuses for legend (including zeros)
+  const allRows = Object.entries(STATUS_META).map(([status, meta]) => ({
+    status,
+    label: meta.label,
+    color: meta.donut,
+    count: countMap[status] ?? 0,
+    pct: total > 0 ? Math.round(((countMap[status] ?? 0) / total) * 100) : 0,
+  }));
 
-  if (total === 0) {
-    return (
-      <div className="flex items-center justify-center h-36 text-[var(--muted)] text-sm">
-        لا توجد بيانات
-      </div>
-    );
-  }
+  // Only non-zero for the donut
+  const segments = allRows.filter((s) => s.count > 0);
 
-  const cx = 80, cy = 80, R = 68, r = 46;
-  const GAP = segments.length > 1 ? 0.05 : 0;
+  const cx = 92, cy = 92, R = 80, r = 54;
+  const GAP = segments.length > 1 ? 0.04 : 0;
   let angle = -Math.PI / 2;
 
   const slices = segments.map((seg) => {
@@ -162,31 +158,46 @@ function DonutChart({ statusCounts }: { statusCounts: StatusCount[] }) {
     const a0 = angle + GAP / 2;
     const a1 = angle + sweep - GAP / 2;
     angle += sweep;
-    return { ...seg, d: buildArc(cx, cy, R, r, a0, a1), pct: Math.round((seg.count / total) * 100) };
+    return { ...seg, d: buildArc(cx, cy, R, r, a0, a1) };
   });
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-5">
-      <svg width="160" height="160" viewBox="0 0 160 160" className="shrink-0">
-        {slices.map((s) => (
-          <path key={s.status} d={s.d} fill={s.color} fillOpacity="0.88" />
-        ))}
-        <text x="80" y="76" textAnchor="middle" fontSize="22" fontWeight="800"
-          style={{ fill: GOLD, fontFamily: "inherit" }}>{total}</text>
-        <text x="80" y="93" textAnchor="middle" fontSize="11"
-          style={{ fill: "var(--muted)", fontFamily: "inherit" }}>إجمالي</text>
-      </svg>
-      <div className="grid grid-cols-2 gap-x-5 gap-y-3 flex-1 w-full">
-        {slices.map((s) => (
-          <div key={s.status} className="flex items-center gap-2 min-w-0">
-            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-[var(--foreground)] leading-tight">{s.label}</p>
-              <p className="text-[10px] text-[var(--muted)] tabular-nums">{s.count} · {s.pct}%</p>
+    <div className="flex items-center gap-4" dir="ltr">
+      {/* Legend — left side, vertical */}
+      <div className="flex flex-col gap-2.5 flex-1">
+        {allRows.map((s) => (
+          <div key={s.status} className="flex items-center gap-2.5">
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color, opacity: s.count === 0 ? 0.3 : 1 }} />
+            <div className="flex-1 min-w-0">
+              <span className="text-[12px] font-semibold leading-none"
+                style={{ color: s.count === 0 ? "var(--muted)" : "var(--foreground)" }}>
+                {s.label}
+              </span>
             </div>
+            <span className="text-[11px] tabular-nums font-mono shrink-0"
+              style={{ color: s.count === 0 ? "var(--muted)" : s.color }}>
+              {s.count > 0 ? `${s.count}` : "—"}
+            </span>
           </div>
         ))}
       </div>
+
+      {/* Donut — right side */}
+      {total === 0 ? (
+        <div className="w-[184px] h-[184px] flex items-center justify-center shrink-0">
+          <p className="text-xs text-[var(--muted)]">لا بيانات</p>
+        </div>
+      ) : (
+        <svg width="184" height="184" viewBox="0 0 184 184" className="shrink-0">
+          {slices.map((s) => (
+            <path key={s.status} d={s.d} fill={s.color} fillOpacity="0.9" />
+          ))}
+          <text x="92" y="86" textAnchor="middle" fontSize="26" fontWeight="800"
+            style={{ fill: GOLD, fontFamily: "inherit" }}>{total}</text>
+          <text x="92" y="104" textAnchor="middle" fontSize="11"
+            style={{ fill: "var(--muted)", fontFamily: "inherit" }}>إجمالي</text>
+        </svg>
+      )}
     </div>
   );
 }
@@ -406,7 +417,10 @@ export default function DashboardPage() {
       {/* Row 2: Donut + Bar Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: GOLD }}>توزيع حالات الطلبات</h2>
+          <div className="flex items-baseline gap-2 mb-5">
+            <h2 className="text-base font-bold tracking-tight" style={{ color: "var(--foreground)" }}>حالات الطلبات</h2>
+            <span className="text-xs font-medium" style={{ color: GOLD }}>توزيع</span>
+          </div>
           <DonutChart statusCounts={data.statusCounts ?? []} />
         </div>
         <div className="lg:col-span-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
