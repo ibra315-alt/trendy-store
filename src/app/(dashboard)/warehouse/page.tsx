@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   AlertCircle, Box, MessageCircle, Pencil,
   ArrowRightLeft, Trash2, Instagram, X, Package,
+  Plus, Minus, ChevronDown, ChevronUp, PackagePlus,
 } from "lucide-react";
 import { formatIQD } from "@/lib/utils";
 
@@ -497,14 +498,423 @@ function PendingTab() {
   );
 }
 
+// ─── Warehouse types ──────────────────────────────────────────
+
+interface ProductVariantData {
+  id: string;
+  color: string | null;
+  size: string | null;
+  purchaseCost: number;
+  sellingPrice: number;
+  stock: number;
+}
+
+interface ProductData {
+  id: string;
+  name: string;
+  type: string;
+  description: string | null;
+  variants: ProductVariantData[];
+}
+
+const PRODUCT_TYPE_AR2: Record<string, string> = {
+  Bag: "حقيبة", Shoe: "حذاء", Clothing: "ملابس", Accessory: "إكسسوار", Other: "أخرى",
+};
+
+// ─── Add Product Modal ────────────────────────────────────────
+
+function AddProductModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (p: ProductData) => void;
+}) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState("Bag");
+  const [description, setDescription] = useState("");
+  const [variants, setVariants] = useState([
+    { color: "", size: "", purchaseCost: "", sellingPrice: "", stock: "1" },
+  ]);
+  const [saving, setSaving] = useState(false);
+
+  function addVariant() {
+    setVariants((v) => [...v, { color: "", size: "", purchaseCost: "", sellingPrice: "", stock: "1" }]);
+  }
+
+  function removeVariant(i: number) {
+    setVariants((v) => v.filter((_, idx) => idx !== i));
+  }
+
+  function setVariantField(i: number, k: string, v: string) {
+    setVariants((prev) => prev.map((row, idx) => idx === i ? { ...row, [k]: v } : row));
+  }
+
+  async function save() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/warehouse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          type,
+          description: description.trim() || null,
+          variants: variants.map((v) => ({
+            color:        v.color.trim()        || null,
+            size:         v.size.trim()         || null,
+            purchaseCost: parseFloat(v.purchaseCost) || 0,
+            sellingPrice: parseFloat(v.sellingPrice) || 0,
+            stock:        parseInt(v.stock)          || 0,
+          })),
+        }),
+      });
+      if (res.ok) { onCreated(await res.json()); onClose(); }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed left-3 right-3 z-50 rounded-3xl"
+        style={{
+          top: "50%", transform: "translateY(-50%)",
+          background: "var(--surface)", border: "1px solid var(--border)",
+          maxHeight: "82dvh", overflowY: "auto",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+        }}
+        dir="rtl"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+          <p className="text-base font-bold text-[var(--foreground)]">منتج جديد</p>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-secondary)] text-[var(--muted)] cursor-pointer">
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          {/* Name */}
+          <div>
+            <label className="text-xs text-[var(--muted)] mb-1 block">اسم المنتج *</label>
+            <input value={name} onChange={(e) => setName(e.target.value)}
+              placeholder="مثال: حقيبة جلد كلاسيك"
+              className="w-full h-10 rounded-xl px-3 text-sm bg-[var(--surface-secondary)] text-[var(--foreground)] border border-[var(--border)] outline-none focus:border-[#c9a84c] transition-colors" />
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="text-xs text-[var(--muted)] mb-1.5 block">النوع</label>
+            <div className="flex flex-wrap gap-2">
+              {PRODUCT_TYPES.map((p) => (
+                <button key={p.value} onClick={() => setType(p.value)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all"
+                  style={{
+                    background: type === p.value ? "#c9a84c" : "var(--surface-secondary)",
+                    color: type === p.value ? "#111" : "var(--muted)",
+                    border: `1px solid ${type === p.value ? "#c9a84c" : "var(--border)"}`,
+                  }}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-xs text-[var(--muted)] mb-1 block">وصف (اختياري)</label>
+            <input value={description} onChange={(e) => setDescription(e.target.value)}
+              placeholder="وصف المنتج..."
+              className="w-full h-10 rounded-xl px-3 text-sm bg-[var(--surface-secondary)] text-[var(--foreground)] border border-[var(--border)] outline-none focus:border-[#c9a84c] transition-colors" />
+          </div>
+
+          {/* Variants */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs text-[var(--muted)]">الأنواع / الألوان / المقاسات</label>
+              <button onClick={addVariant}
+                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-xl cursor-pointer"
+                style={{ background: "rgba(201,168,76,0.12)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.3)" }}>
+                <Plus size={11} /> إضافة
+              </button>
+            </div>
+            <div className="space-y-2">
+              {variants.map((v, i) => (
+                <div key={i} className="p-3 rounded-2xl border border-[var(--border)] bg-[var(--background)] space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <MiniField label="اللون"   value={v.color}   onChange={(val) => setVariantField(i, "color", val)}   placeholder="أسود" />
+                    <MiniField label="المقاس"  value={v.size}    onChange={(val) => setVariantField(i, "size", val)}    placeholder="M" />
+                    <MiniField label="الكمية"  value={v.stock}   onChange={(val) => setVariantField(i, "stock", val)}   placeholder="0" type="number" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <MiniField label="سعر الشراء (₺)" value={v.purchaseCost} onChange={(val) => setVariantField(i, "purchaseCost", val)} placeholder="0" type="number" />
+                    <MiniField label="سعر البيع (د.ع)" value={v.sellingPrice} onChange={(val) => setVariantField(i, "sellingPrice", val)} placeholder="0" type="number" />
+                  </div>
+                  {variants.length > 1 && (
+                    <button onClick={() => removeVariant(i)}
+                      className="text-[10px] text-[var(--muted)] hover:text-[#f87171] transition-colors cursor-pointer">
+                      حذف هذا النوع
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={save} disabled={saving || !name.trim()}
+            className="w-full h-11 rounded-2xl text-sm font-bold cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-40"
+            style={{ background: "#c9a84c", color: "#111" }}>
+            {saving ? "جاري الحفظ..." : "إضافة للمخزن"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MiniField({ label, value, onChange, placeholder, type = "text" }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+}) {
+  return (
+    <div>
+      <label className="text-[10px] text-[var(--muted)] mb-0.5 block">{label}</label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full h-9 rounded-xl px-2.5 text-xs bg-[var(--surface)] text-[var(--foreground)] border border-[var(--border)] outline-none focus:border-[#c9a84c] transition-colors" />
+    </div>
+  );
+}
+
+// ─── Product Card ─────────────────────────────────────────────
+
+function ProductCard({
+  product,
+  onStockChange,
+  onDeleted,
+}: {
+  product: ProductData;
+  onStockChange: (variantId: string, newStock: number) => void;
+  onDeleted: (productId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [addingVariant, setAddingVariant] = useState(false);
+  const [newVariant, setNewVariant] = useState({ color: "", size: "", purchaseCost: "", sellingPrice: "", stock: "1" });
+  const [saving, setSaving] = useState(false);
+
+  const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
+  const typeLabel = PRODUCT_TYPE_AR2[product.type] ?? product.type;
+
+  async function adjustStock(variantId: string, delta: number) {
+    const res = await fetch(`/api/warehouse/variants/${variantId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stockDelta: delta }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      onStockChange(variantId, updated.stock);
+    }
+  }
+
+  async function deleteProduct() {
+    if (!confirm(`هل تريد حذف منتج "${product.name}"؟`)) return;
+    await fetch(`/api/warehouse/${product.id}`, { method: "DELETE" });
+    onDeleted(product.id);
+  }
+
+  async function saveVariant() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/warehouse/${product.id}/variants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          color:        newVariant.color.trim()        || null,
+          size:         newVariant.size.trim()         || null,
+          purchaseCost: parseFloat(newVariant.purchaseCost) || 0,
+          sellingPrice: parseFloat(newVariant.sellingPrice) || 0,
+          stock:        parseInt(newVariant.stock)          || 0,
+        }),
+      });
+      if (res.ok) {
+        const v = await res.json();
+        onStockChange(v.id, v.stock);
+        // force refetch by signaling parent — simpler: reload page
+        window.location.reload();
+      }
+    } finally {
+      setSaving(false);
+      setAddingVariant(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--surface)]">
+      {/* Header */}
+      <div
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[var(--surface-secondary)] transition-colors"
+      >
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.2)" }}>
+          <Package size={15} style={{ color: "#c9a84c" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-[var(--foreground)] truncate">{product.name}</p>
+          <p className="text-[11px] text-[var(--muted)]">{typeLabel} · {product.variants.length} نوع</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+            style={{ background: totalStock > 0 ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)", color: totalStock > 0 ? "#4ade80" : "#f87171" }}>
+            {totalStock} قطعة
+          </span>
+          {open ? <ChevronUp size={14} className="text-[var(--muted)]" /> : <ChevronDown size={14} className="text-[var(--muted)]" />}
+        </div>
+      </div>
+
+      {/* Variants */}
+      {open && (
+        <div style={{ borderTop: "1px solid var(--border)" }}>
+          {product.variants.map((v, i) => {
+            const label = [v.color, v.size].filter(Boolean).join(" / ") || "افتراضي";
+            return (
+              <div key={v.id} className="flex items-center gap-3 px-4 py-2.5 bg-[var(--background)]"
+                style={{ borderBottom: i < product.variants.length - 1 || addingVariant ? "1px solid var(--border)" : "none" }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{label}</p>
+                  {v.sellingPrice > 0 && (
+                    <p className="text-[10px] text-[var(--muted)] tabular-nums">{v.sellingPrice.toLocaleString()} د.ع</p>
+                  )}
+                </div>
+                {/* Stock controls */}
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => adjustStock(v.id, -1)}
+                    className="w-7 h-7 rounded-xl flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
+                    style={{ background: "var(--surface-secondary)", border: "1px solid var(--border)" }}>
+                    <Minus size={11} className="text-[var(--foreground)]" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold tabular-nums"
+                    style={{ color: v.stock > 0 ? "#4ade80" : "#f87171" }}>
+                    {v.stock}
+                  </span>
+                  <button onClick={() => adjustStock(v.id, +1)}
+                    className="w-7 h-7 rounded-xl flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
+                    style={{ background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)" }}>
+                    <Plus size={11} style={{ color: "#c9a84c" }} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Add variant form */}
+          {addingVariant && (
+            <div className="px-4 py-3 bg-[var(--background)] space-y-2" style={{ borderTop: "1px solid var(--border)" }}>
+              <div className="grid grid-cols-3 gap-2">
+                <MiniField label="اللون"  value={newVariant.color}  onChange={(v) => setNewVariant((p) => ({ ...p, color: v }))}  placeholder="أسود" />
+                <MiniField label="المقاس" value={newVariant.size}   onChange={(v) => setNewVariant((p) => ({ ...p, size: v }))}   placeholder="M" />
+                <MiniField label="الكمية" value={newVariant.stock}  onChange={(v) => setNewVariant((p) => ({ ...p, stock: v }))}  placeholder="1" type="number" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <MiniField label="سعر الشراء (₺)" value={newVariant.purchaseCost} onChange={(v) => setNewVariant((p) => ({ ...p, purchaseCost: v }))} placeholder="0" type="number" />
+                <MiniField label="سعر البيع (د.ع)" value={newVariant.sellingPrice} onChange={(v) => setNewVariant((p) => ({ ...p, sellingPrice: v }))} placeholder="0" type="number" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveVariant} disabled={saving}
+                  className="flex-1 h-8 rounded-xl text-xs font-bold cursor-pointer"
+                  style={{ background: "#c9a84c", color: "#111" }}>
+                  {saving ? "..." : "حفظ"}
+                </button>
+                <button onClick={() => setAddingVariant(false)}
+                  className="flex-1 h-8 rounded-xl text-xs font-semibold cursor-pointer"
+                  style={{ background: "var(--surface-secondary)", color: "var(--muted)", border: "1px solid var(--border)" }}>
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer actions */}
+          <div className="flex items-center justify-between px-4 py-2.5"
+            style={{ borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+            <button onClick={() => setAddingVariant((v) => !v)}
+              className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity"
+              style={{ color: "#c9a84c" }}>
+              <Plus size={12} /> نوع جديد
+            </button>
+            <button onClick={deleteProduct}
+              className="flex items-center gap-1.5 text-xs cursor-pointer hover:opacity-80 transition-opacity"
+              style={{ color: "#f87171" }}>
+              <Trash2 size={12} /> حذف المنتج
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tab: Warehouse ───────────────────────────────────────────
 
 function WarehouseTab() {
+  const [products, setProducts] = useState<ProductData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/warehouse")
+      .then((r) => r.json())
+      .then(setProducts)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  function handleStockChange(variantId: string, newStock: number) {
+    setProducts((prev) =>
+      prev.map((p) => ({
+        ...p,
+        variants: p.variants.map((v) => v.id === variantId ? { ...v, stock: newStock } : v),
+      }))
+    );
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-48"><p className="text-sm text-[var(--muted)]">جاري التحميل...</p></div>;
+
   return (
-    <div className="flex flex-col items-center justify-center h-48 gap-3">
-      <Box size={36} strokeWidth={1.2} className="text-[var(--muted)]" />
-      <p className="text-sm font-semibold text-[var(--foreground)]">المخزن</p>
-      <p className="text-xs text-[var(--muted)] text-center max-w-[220px]">قريباً — إدارة المخزون وتتبع المنتجات</p>
+    <div className="space-y-3">
+      {/* Add button */}
+      <button onClick={() => setShowAdd(true)}
+        className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl text-sm font-bold cursor-pointer hover:opacity-90 transition-opacity"
+        style={{ background: "rgba(201,168,76,0.12)", color: "#c9a84c", border: "1px dashed rgba(201,168,76,0.4)" }}>
+        <PackagePlus size={16} strokeWidth={2} />
+        إضافة منتج جديد
+      </button>
+
+      {/* Products */}
+      {products.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-40 gap-3">
+          <Box size={32} strokeWidth={1.2} className="text-[var(--muted)]" />
+          <p className="text-sm text-[var(--muted)]">لا توجد منتجات في المخزن بعد</p>
+        </div>
+      ) : (
+        products.map((p) => (
+          <ProductCard
+            key={p.id}
+            product={p}
+            onStockChange={handleStockChange}
+            onDeleted={(id) => setProducts((prev) => prev.filter((x) => x.id !== id))}
+          />
+        ))
+      )}
+
+      {showAdd && (
+        <AddProductModal
+          onClose={() => setShowAdd(false)}
+          onCreated={(p) => setProducts((prev) => [p, ...prev])}
+        />
+      )}
     </div>
   );
 }
