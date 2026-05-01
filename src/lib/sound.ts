@@ -45,36 +45,36 @@ function haptic(ms = 6) {
 export function playSound(type: SoundType = "tap") {
   try {
     switch (type) {
-      // ─── Navigation tap — crisp double-click feel
+      // ─── Navigation tap — clean double-tick
       case "tap":
-        haptic(6);
-        playTone(680, 420, 0.055, 0.07, "sine");
-        playTone(820, 520, 0.035, 0.04, "sine", 0.01);
-        break;
-
-      // ─── Success (save / create) — rising soft chime
-      case "success":
         haptic(8);
-        playTone(440, 660, 0.07, 0.06, "sine");
-        playTone(550, 880, 0.09, 0.045, "sine", 0.06);
+        playTone(900, 600, 0.07, 0.18, "sine");
+        playTone(1100, 700, 0.05, 0.12, "sine", 0.04);
         break;
 
-      // ─── Error — soft descending thud
+      // ─── Success — bright rising chime
+      case "success":
+        haptic(10);
+        playTone(520, 780, 0.09, 0.18, "sine");
+        playTone(660, 1040, 0.11, 0.14, "sine", 0.07);
+        break;
+
+      // ─── Error — low descending thud
       case "error":
-        haptic(12);
-        playTone(320, 180, 0.1, 0.08, "sine");
+        haptic(15);
+        playTone(380, 200, 0.13, 0.22, "sine");
         break;
 
-      // ─── Open modal / sheet — subtle whoosh up
+      // ─── Open modal — quick ascending pop
       case "open":
-        haptic(5);
-        playTone(300, 520, 0.08, 0.05, "sine");
+        haptic(6);
+        playTone(420, 720, 0.09, 0.2, "sine");
         break;
 
-      // ─── Close modal / sheet — subtle whoosh down
+      // ─── Close modal — quick descending pop
       case "close":
-        haptic(5);
-        playTone(520, 300, 0.07, 0.05, "sine");
+        haptic(6);
+        playTone(720, 420, 0.08, 0.18, "sine");
         break;
     }
   } catch {
