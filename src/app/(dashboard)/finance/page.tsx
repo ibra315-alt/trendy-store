@@ -99,14 +99,15 @@ function BatchFinanceCard({ batch, settings }: { batch: Batch; settings: Setting
   const totalSellIQD    = batch.orders.reduce((s, o) => s + o.sellingPrice, 0);
   const totalSellUSD    = usdToIqd > 0 ? totalSellIQD / usdToIqd : 0;
 
+  // التوصيل: يُجمع من الزبون ويُسلَّم لشركة التوصيل — لا يدخل في حساب الربح
   const totalDeliveryIQD = batch.orders.reduce((s, o) => s + o.deliveryCost, 0);
-  const totalDeliveryUSD = usdToIqd > 0 ? totalDeliveryIQD / usdToIqd : 0;
 
   const totalDepositIQD  = batch.orders.reduce((s, o) => s + o.deposit, 0);
   const totalDepositUSD  = usdToIqd > 0 ? totalDepositIQD / usdToIqd : 0;
 
+  // التكاليف الفعلية للمتجر (بدون التوصيل لأنه يذهب لشركة التوصيل)
   const totalCostsUSD =
-    totalPurchaseUSD + batch.shippingCost + batch.promotionCost + batch.expenses + totalDeliveryUSD;
+    totalPurchaseUSD + batch.shippingCost + batch.promotionCost + batch.expenses;
   const netProfitUSD = totalSellUSD - totalCostsUSD;
 
   const sm = STATUS_META[batch.status] ?? STATUS_META.completed;
