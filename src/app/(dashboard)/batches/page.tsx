@@ -564,6 +564,17 @@ function BatchOrdersModal({
   );
 }
 
+// ---------- StatCell ----------
+
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-2 py-2 bg-[var(--background)]">
+      <span className="text-[9px] text-[var(--muted)] leading-none mb-1">{label}</span>
+      <span className="text-[12px] font-semibold text-[var(--foreground)] tabular-nums leading-none">{value}</span>
+    </div>
+  );
+}
+
 // ---------- Main Component ----------
 
 export default function BatchesPage() {
@@ -819,28 +830,16 @@ export default function BatchesPage() {
 
                 {/* ── Body ── */}
                 <div className="bg-[var(--surface)] px-4 py-3 space-y-3 flex-1">
-                  {/* Stats chips */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">
-                      <Package size={10} />
-                      <span className="font-semibold text-[var(--foreground)]">{total}</span>
-                      {t.batches.card.orders.replace(":", "")}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">
-                      {t.batches.card.shipping.replace(":", "")}
-                      <span className="font-semibold text-[var(--foreground)]">{formatUSD(batch.shippingCost)}</span>
-                    </span>
+
+                  {/* Stats row — label above value */}
+                  <div className="grid gap-px rounded-xl overflow-hidden" style={{ gridTemplateColumns: `repeat(${2 + (batch.promotionCost > 0 ? 1 : 0) + (batch.expenses > 0 ? 1 : 0)}, 1fr)`, background: "var(--border)" }}>
+                    <StatCell label={t.batches.card.orders.replace(":", "")} value={String(total)} />
+                    <StatCell label={t.batches.card.shipping.replace(":", "")} value={formatUSD(batch.shippingCost)} />
                     {batch.promotionCost > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
-                        {t.batches.dialog.promotionCost.replace(" (USD)", "")}:
-                        <span className="font-semibold">{formatUSD(batch.promotionCost)}</span>
-                      </span>
+                      <StatCell label="الترويج" value={formatUSD(batch.promotionCost)} />
                     )}
                     {batch.expenses > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
-                        {t.batches.dialog.expenses.replace(" (USD)", "")}:
-                        <span className="font-semibold">{formatUSD(batch.expenses)}</span>
-                      </span>
+                      <StatCell label="المصاريف" value={formatUSD(batch.expenses)} />
                     )}
                   </div>
 
@@ -848,7 +847,7 @@ export default function BatchesPage() {
                   <div>
                     <div className="flex justify-between text-[11px] mb-1.5">
                       <span className="text-[var(--muted)]">{t.batches.card.progress}</span>
-                      <span className="font-semibold" style={{ color: barColor }}>
+                      <span className="font-semibold tabular-nums" style={{ color: barColor }}>
                         {t.batches.card.progressDetail(bought, total)} · {pct}%
                       </span>
                     </div>
@@ -861,14 +860,14 @@ export default function BatchesPage() {
                   </div>
 
                   {/* Financial row */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+                  <div className="grid grid-cols-2 gap-px rounded-xl overflow-hidden" style={{ background: "var(--border)" }}>
+                    <div className="px-3 py-2 text-center bg-[var(--background)]">
                       <p className="text-[10px] text-[var(--muted)] mb-0.5">{t.batches.card.purchaseCosts}</p>
-                      <p className="text-xs font-bold text-[var(--foreground)] font-mono">{formatTRY(totalPurchaseTRY)}</p>
+                      <p className="text-xs font-bold text-[var(--foreground)] tabular-nums">{formatTRY(totalPurchaseTRY)}</p>
                     </div>
-                    <div className="rounded-xl px-3 py-2 text-center" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
+                    <div className="px-3 py-2 text-center bg-[var(--background)]">
                       <p className="text-[10px] text-[var(--muted)] mb-0.5">{t.batches.card.sellingCosts}</p>
-                      <p className="text-xs font-bold font-mono" style={{ color: "#c9a84c" }}>{formatIQD(totalSellingIQD)}</p>
+                      <p className="text-xs font-bold tabular-nums" style={{ color: "#c9a84c" }}>{formatIQD(totalSellingIQD)}</p>
                     </div>
                   </div>
                 </div>
