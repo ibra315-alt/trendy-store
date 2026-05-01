@@ -54,7 +54,7 @@ export function Dock() {
           <Link
             key={item.href}
             href={item.href}
-            className={`relative flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl transition-all duration-200 group ${
+            className={`relative flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-3xl transition-all duration-200 group ${
               active
                 ? "text-[var(--accent)]"
                 : "text-[var(--muted)] hover:text-[var(--accent)]"
@@ -67,7 +67,7 @@ export function Dock() {
 
             {/* Icon container with glow */}
             <div
-              className={`relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200 ${
+              className={`relative flex items-center justify-center w-10 h-8 rounded-3xl transition-all duration-200 ${
                 active
                   ? "bg-[var(--accent)]/12 dock-glow"
                   : "group-hover:bg-[var(--accent)]/5"
