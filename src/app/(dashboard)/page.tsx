@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { playSound } from "@/lib/sound";
 import {
   ShoppingCart,
@@ -337,7 +338,7 @@ export default function DashboardPage() {
       setLoading(true);
       setData(null);
       try {
-        const res = await fetch("/api/dashboard");
+        const res = await cachedFetch("/api/dashboard");
         if (res.status === 401) { router.push("/login"); return; }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();

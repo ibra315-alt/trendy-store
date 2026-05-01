@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { cachedFetch, invalidateCache } from "@/lib/fetch-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -603,8 +604,8 @@ export default function BatchesPage() {
   const fetchData = useCallback(async () => {
     try {
       const [batchRes, settingsRes] = await Promise.all([
-        fetch("/api/batches"),
-        fetch("/api/settings"),
+        cachedFetch("/api/batches"),
+        cachedFetch("/api/settings"),
       ]);
       if (batchRes.ok) {
         const data = await batchRes.json();
@@ -702,6 +703,7 @@ export default function BatchesPage() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        invalidateCache("/api/batches");
         setDialogOpen(false);
         fetchData();
       }
@@ -716,7 +718,7 @@ export default function BatchesPage() {
     if (!confirm(t.batches.modal.deleteBatchConfirm)) return;
     try {
       const res = await fetch(`/api/batches/${id}`, { method: "DELETE" });
-      if (res.ok) fetchData();
+      if (res.ok) { invalidateCache("/api/batches"); fetchData(); }
     } catch (err) {
       console.error("Delete failed", err);
     }

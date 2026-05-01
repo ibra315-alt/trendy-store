@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { cachedFetch } from "@/lib/fetch-cache";
 import { useAuthStore } from "@/store/auth";
 import { useFinanceFilterStore } from "@/store/finance-filter";
 import { formatIQD, formatUSD, formatTRY } from "@/lib/utils";
@@ -189,8 +190,8 @@ export default function FinancePage() {
     async function fetchData() {
       try {
         const [batchesRes, settingsRes] = await Promise.all([
-          fetch("/api/batches"),
-          fetch("/api/settings"),
+          cachedFetch("/api/batches"),
+          cachedFetch("/api/settings"),
         ]);
         if (batchesRes.ok) setBatches(await batchesRes.json());
         if (settingsRes.ok) setSettings(await settingsRes.json());

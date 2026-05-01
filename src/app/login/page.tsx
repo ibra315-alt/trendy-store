@@ -21,14 +21,25 @@ function StoreName({ name }: { name: string }) {
   );
 }
 
+const LS_NAME = "ls_store_name";
+const LS_LOGO = "ls_store_logo";
+
+function readLS(key: string) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function writeLS(key: string, val: string) {
+  try { localStorage.setItem(key, val); } catch { /* ignore */ }
+}
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [storeName, setStoreName] = useState("متجر ترندي");
-  const [logo, setLogo] = useState<string | null>(null);
+  // Read from localStorage immediately so logo shows without flash
+  const [storeName, setStoreName] = useState(() => readLS(LS_NAME) || "متجر ترندي");
+  const [logo, setLogo] = useState<string | null>(() => readLS(LS_LOGO));
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
@@ -37,8 +48,9 @@ export default function LoginPage() {
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
         if (!d) return;
-        if (d.storeName) setStoreName(d.storeName);
-        if (d.logo) setLogo(d.logo);
+        if (d.storeName) { setStoreName(d.storeName); writeLS(LS_NAME, d.storeName); }
+        if (d.logo) { setLogo(d.logo); writeLS(LS_LOGO, d.logo); }
+        else if (d.logo === null) { setLogo(null); writeLS(LS_LOGO, ""); }
       })
       .catch(() => {});
   }, []);
