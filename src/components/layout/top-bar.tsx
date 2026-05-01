@@ -5,8 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { playSound } from "@/lib/sound";
 import {
-  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package, X, Users, Upload, DollarSign, Warehouse,
+  Sun, Moon, Search, ChevronLeft, Plus, ChevronDown, Package, X, Users, Upload, DollarSign, Warehouse, LogOut,
 } from "lucide-react";
+import { useAuthStore } from "@/store/auth";
 import { useT } from "@/lib/i18n";
 import { useBatchFilterStore } from "@/store/batch-filter";
 import { useOrderFilterStore } from "@/store/order-filter";
@@ -63,10 +64,16 @@ export function AppNavbar() {
   const { search: financeSearch, statusFilter: financeStatus, setSearch: setFinanceSearch, setStatusFilter: setFinanceStatus } = useFinanceFilterStore();
 
   const isDark = theme === "dark";
+  const { logout } = useAuthStore();
 
   const openCommandBar = useCallback(() => {
     window.dispatchEvent(new CustomEvent("toggle-command-bar"));
   }, []);
+
+  const handleLogout = useCallback(() => {
+    logout();
+    router.replace("/login");
+  }, [logout, router]);
 
   useEffect(() => { setMounted(true); setGreeting(getGreeting()); }, []);
 
@@ -492,12 +499,20 @@ export function AppNavbar() {
       <div className="flex items-center gap-2">
         {title && <span className="text-base font-bold" style={{ color: "var(--foreground)" }}>{title}</span>}
       </div>
-      <div className="flex items-center gap-2">
-        <button onClick={openCommandBar} className="flex items-center justify-center w-9 h-9 rounded-xl text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer">
-          <Search size={17} strokeWidth={1.8} />
-        </button>
-        <ThemeToggle />
-      </div>
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-1.5 h-8 px-3 rounded-xl border text-[12px] font-medium transition-all cursor-pointer"
+        style={{
+          borderColor: "rgba(239,68,68,0.3)",
+          color: "#f87171",
+          background: "rgba(239,68,68,0.06)",
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.12)"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.06)"; }}
+      >
+        <LogOut size={14} strokeWidth={2} />
+        خروج
+      </button>
     </header>
   );
 }

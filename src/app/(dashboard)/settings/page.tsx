@@ -829,66 +829,45 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            {/* ── Action cards ── */}
+            <div className="grid grid-cols-1 gap-2">
               <button
                 onClick={handleExportDatabase}
-                className="flex items-center gap-2 px-4 py-2.5 border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl border border-[var(--border)] transition-colors cursor-pointer text-start hover:border-[var(--accent)]/40 hover:bg-[var(--surface-secondary)]"
               >
-                <Download size={16} />
-                {t.settings.system.exportDatabase}
+                <Download size={16} style={{ color: "var(--muted)" }} />
+                <span className="text-sm" style={{ color: "var(--muted)" }}>{t.settings.system.exportDatabase}</span>
               </button>
               <button
                 onClick={handleExportMeta}
                 disabled={exportingMeta}
-                className="flex items-center gap-2 px-4 py-2.5 border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-60"
+                className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl border border-[var(--border)] transition-colors cursor-pointer text-start hover:border-[var(--accent)]/40 hover:bg-[var(--surface-secondary)] disabled:opacity-50"
               >
-                <Download size={16} />
-                {exportingMeta ? t.settings.system.exporting : t.settings.system.exportMeta}
+                <Download size={16} style={{ color: "var(--muted)" }} />
+                <span className="text-sm" style={{ color: "var(--muted)" }}>
+                  {exportingMeta ? t.settings.system.exporting : t.settings.system.exportMeta}
+                </span>
               </button>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2.5 border border-red-400 text-red-600 rounded-xl bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
-            >
-              {t.settings.system.logout}
-            </button>
-            <p className="text-sm text-[var(--muted)]">
-              {t.settings.system.backupNote}
-            </p>
-
-            {/* ── Import Customers ── */}
-            <div className="border-t border-[var(--border)] pt-5 space-y-3">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--foreground)]">{t.settings.system.importTitle}</h3>
-                <p className="text-xs text-[var(--muted)] mt-0.5">
-                  {t.settings.system.importNote} <span dir="ltr" className="font-mono">fn, phone, phone2, instagram</span>
-                </p>
-              </div>
-
-              {importMsg && (
-                <div
-                  className="text-sm font-medium rounded-xl px-4 py-2.5"
-                  style={{
-                    background: importMsg.ok ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)",
-                    color: importMsg.ok ? "#16a34a" : "#dc2626",
-                  }}
-                >
-                  {importMsg.text}
-                </div>
-              )}
-
-              <label className="inline-flex items-center gap-2 px-4 py-2.5 border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer select-none">
-                <Upload size={15} strokeWidth={1.8} />
-                {importing ? t.settings.system.importing : t.settings.system.importBtn}
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  disabled={importing}
-                  onChange={handleImportCSV}
-                />
+              <label className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl border border-[var(--border)] transition-colors cursor-pointer hover:border-[var(--accent)]/40 hover:bg-[var(--surface-secondary)]">
+                <Upload size={16} style={{ color: "var(--muted)" }} />
+                <span className="text-sm" style={{ color: "var(--muted)" }}>
+                  {importing ? t.settings.system.importing : t.settings.system.importBtn}
+                </span>
+                <input type="file" accept=".csv,text/csv" className="sr-only" disabled={importing} onChange={handleImportCSV} />
               </label>
             </div>
+
+            {importMsg && (
+              <div
+                className="text-sm font-medium rounded-xl px-4 py-2.5"
+                style={{
+                  background: importMsg.ok ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)",
+                  color: importMsg.ok ? "#16a34a" : "#dc2626",
+                }}
+              >
+                {importMsg.text}
+              </div>
+            )}
           </div>
         );
 
