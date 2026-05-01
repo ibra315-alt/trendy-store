@@ -5,6 +5,22 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { ShoppingBag, Loader2, Eye, EyeOff } from "lucide-react";
 
+function StoreName({ name }: { name: string }) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return <span style={{ color: "#c9a84c" }}>{name}</span>;
+  }
+  const mid = Math.ceil(parts.length / 2);
+  const first = parts.slice(0, mid).join(" ");
+  const second = parts.slice(mid).join(" ");
+  return (
+    <>
+      <span style={{ color: "#c9a84c" }}>{first}</span>
+      <span style={{ color: "var(--foreground)" }}> {second}</span>
+    </>
+  );
+}
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -83,31 +99,31 @@ export default function LoginPage() {
           {/* Logo / Branding */}
           <div className="flex flex-col items-center mb-8">
             {logo ? (
-              <div className="mb-4 w-20 h-20 rounded-2xl overflow-hidden border border-[var(--border)] flex items-center justify-center" style={{ background: "var(--surface)" }}>
-                <img
-                  src={logo}
-                  alt={storeName}
-                  className="w-full h-full object-contain"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-              </div>
+              <img
+                src={logo}
+                alt={storeName}
+                className="mb-5"
+                style={{
+                  width: "90px",
+                  height: "90px",
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 2px 8px rgba(201,168,76,0.45)) drop-shadow(0 8px 24px rgba(0,0,0,0.55)) drop-shadow(0 1px 2px rgba(255,255,255,0.08))",
+                  transform: "perspective(400px) rotateX(4deg)",
+                  transformOrigin: "center bottom",
+                }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
             ) : (
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
                 style={{ background: "linear-gradient(135deg, #c9a84c 0%, #b8860b 100%)", boxShadow: "0 4px 20px rgba(201,168,76,0.35)" }}
               >
                 <ShoppingBag className="w-8 h-8 text-black" />
               </div>
             )}
-            <h1
-              className="text-xl font-bold tracking-wide"
-              style={{ color: "var(--foreground)", letterSpacing: "0.03em" }}
-            >
-              {storeName}
+            <h1 className="text-2xl font-bold tracking-wide" style={{ letterSpacing: "0.04em" }}>
+              <StoreName name={storeName} />
             </h1>
-            <p className="text-[13px] mt-1" style={{ color: "var(--muted)" }}>
-              نظام الإدارة
-            </p>
           </div>
 
           {/* Divider */}
