@@ -187,7 +187,7 @@ export function AppNavbar() {
             </button>
             {filterDropOpen && (
               <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[170px] rounded-xl shadow-xl overflow-hidden py-1"
-                style={{ background: "var(--surface)", border: "1px solid var(--border)" }} dir="rtl">
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
                 {filterOptions.map(({ value, label, color }) => {
                   const cnt = counts[value] ?? 0;
                   const isActive = statusFilter === value;
@@ -195,7 +195,7 @@ export function AppNavbar() {
                     <button key={value}
                       onClick={() => { setStatusFilter(value); setFilterDropOpen(false); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors text-right"
-                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "var(--foreground)" }}>
+                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "#ccc" }}>
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
                       <span className="flex-1">{label}</span>
                       <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold" style={{ background: color + "22", color }}>{cnt}</span>
@@ -252,7 +252,7 @@ export function AppNavbar() {
             </button>
             {filterDropOpen && (
               <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[150px] rounded-xl shadow-xl overflow-hidden py-1"
-                style={{ background: "var(--surface)", border: "1px solid var(--border)" }} dir="rtl">
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
                 {ORDER_TABS.map((tab) => {
                   const isActive = activeTab === tab.value;
                   return (
@@ -432,14 +432,14 @@ export function AppNavbar() {
             </button>
             {filterDropOpen && (
               <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[160px] rounded-xl shadow-xl overflow-hidden py-1"
-                style={{ background: "var(--surface)", border: "1px solid var(--border)" }} dir="rtl">
+                style={{ background: "#1e1e2e", border: "1px solid #333" }} dir="rtl">
                 {financeStatusOptions.map(({ value, label, color }) => {
                   const isActive = financeStatus === value;
                   return (
                     <button key={value}
                       onClick={() => { setFinanceStatus(value); setFilterDropOpen(false); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors text-right"
-                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "var(--foreground)" }}>
+                      style={{ background: isActive ? color + "22" : "transparent", color: isActive ? color : "#ccc" }}>
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
                       <span className="flex-1">{label}</span>
                     </button>

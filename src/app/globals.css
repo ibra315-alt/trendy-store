@@ -78,10 +78,10 @@
    ============================================ */
 
 .dark {
-  --color-ground: #1a1a2e;
-  --color-card: #16213e;
-  --color-border: #2a2a4a;
-  --color-border-light: #1e1e3a;
+  --color-ground: #0F0F0F;
+  --color-card: #1A1A1A;
+  --color-border: #2A2A2A;
+  --color-border-light: #1F1F1F;
 
   --color-navy: #C9A84C;
   --color-navy-light: #d4b86a;
@@ -95,22 +95,22 @@
   --color-danger: #f87171;
   --color-danger-light: rgba(248, 113, 113, 0.13);
 
-  --color-ink: #f0f0f0;
-  --color-ink-secondary: #8a8a9a;
-  --color-ink-muted: #8a8a9a;
-  --color-ink-inverse: #1a1a2e;
+  --color-ink: #F0F0F0;
+  --color-ink-secondary: #A0A0A0;
+  --color-ink-muted: #69717E;
+  --color-ink-inverse: #0F0F0F;
 
   /* Trendy Store tokens */
-  --bg:          #1a1a2e;
-  --surface-t:   #16213e;
-  --surface-2t:  #1e1e3a;
+  --bg:          #0F0F0F;
+  --surface-t:   #1A1A1A;
+  --surface-2t:  #1F1F1F;
   --gold:        #C9A84C;
   --gold-2:      #B8860B;
   --glow:        0 0 20px rgba(201, 168, 76, 0.35);
-  --fg:          #f0f0f0;
-  --fg-2:        #8a8a9a;
-  --fg-muted:    #8a8a9a;
-  --fg-dim:      #666680;
+  --fg:          #F0F0F0;
+  --fg-2:        #A0A0A0;
+  --fg-muted:    #69717E;
+  --fg-dim:      #666666;
 
   /* Status colors */
   --status-new:        #60a5fa;
@@ -208,9 +208,9 @@
 }
 
 .dark {
-  --surface-secondary: #1e1e3a;
-  --surface-tertiary: #2a2a4a;
-  --surface-2: #1e1e3a;
+  --surface-secondary: #1F1F1F;
+  --surface-tertiary: #2A2A2A;
+  --surface-2: #1F1F1F;
   --card: var(--color-card);
 }
 
